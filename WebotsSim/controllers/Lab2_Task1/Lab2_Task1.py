@@ -42,50 +42,52 @@ def getDistanceReadings():
 
 
 def wallFollowing(targetWall, targetDistances, Kpf, Kps):
-    maxVelocity = 0.8
+    maxVelocity = 1
     currentDistances = getDistanceReadings()
-    Cmax = 0.8 # m/s
-    Cmin = 0.4  # m/s
+    Cmax = 1  # m/s
+    Cmin = 0.2  # m/s
     if current_maze_file == maze_file[0]:
         targetDistances[1] = 0.5
 
     if targetWall == 'f':
         if len(currentDistances) == 3:
-            print(f'Distances from Walls: {currentDistances}')
             leftDistance = currentDistances[0]
             rightDistance = currentDistances[2]
+
+            print(f'Distances from Walls: {currentDistances}')
             frontError = targetDistances[1] - currentDistances[1]
-            Utf = frontError * Kpf
+
+            Utf = abs(frontError) * Kpf
             print(f"3 front {frontError}")
             print("UT:", frontError * Kpf)
 
-            if frontError < 0:
+            if frontError < 0:  # far away from front wall move foward
+                # SetAngularVelocity(SaturationFunction(Utf, Cmax, Cmin), SaturationFunction(Utf, Cmax, Cmin))
                 wallFollowing('l', targetDistances, Kpf, Kps)
-            elif -0.001 <= frontError <= 0.001:
+            elif -0.001 <= frontError < 0.001:  # really close to wall Stop
                 if current_maze_file == maze_file[0]:
                     if frontError == 0:
                         SetAngularVelocity(0, 0)
                     else:
-                        SetAngularVelocity(maxVelocity - (maxVelocity - abs(frontError) * Kpf),
-                                           maxVelocity - (maxVelocity - abs(frontError) * Kpf))
+                        SetAngularVelocity(maxVelocity - (maxVelocity - SaturationFunction(Utf, Cmax, Cmin)),
+                                           maxVelocity - (maxVelocity - SaturationFunction(Utf, Cmax, Cmin)))
+            else:  # passed the wall Reverse
+                if current_maze_file == maze_file[0]:
+                    SetAngularVelocity(-maxVelocity + (maxVelocity - SaturationFunction(Utf, Cmax, Cmin)),
+                                       -maxVelocity + (maxVelocity - SaturationFunction(Utf, Cmax, Cmin)))
                 else:
-                    if leftDistance + rightDistance <= 1.1:
-                        SetAngularVelocity(maxVelocity, -(maxVelocity - abs(frontError) * Kpf))
-            else:
-                if leftDistance + rightDistance <= 1.1:
-                    SetAngularVelocity(maxVelocity, -(maxVelocity - abs(frontError) * Kpf))
-                SetAngularVelocity(-maxVelocity + (maxVelocity - abs(frontError) * Kpf),
-                                   -maxVelocity + (maxVelocity - abs(frontError) * Kpf))
+                    wallFollowing('l', targetDistances, Kpf, Kps)
+
         elif len(currentDistances) == 5:
             leftDistance = (currentDistances[0] + currentDistances[1]) / 2
-            RightDistance = (currentDistances[3] + currentDistances[4]) / 2
+            rightDistance = (currentDistances[3] + currentDistances[4]) / 2
             print(
-                f'Distances from Walls: {[leftDistance, currentDistances[2], RightDistance]}')
+                f'Distances from Walls: {[leftDistance, currentDistances[2], rightDistance]}')
 
             frontError = targetDistances[1] - currentDistances[2]
-            Utf = frontError * Kpf
+            Utf = abs(frontError) * Kpf
             print(f"5 front {frontError}")
-            print("UT:", frontError * Kpf)
+            print("UTF:", frontError * Kpf)
             if frontError < 0:
                 wallFollowing('l', targetDistances, Kpf, Kps)
             elif -0.001 <= frontError < 0.001:
@@ -93,69 +95,75 @@ def wallFollowing(targetWall, targetDistances, Kpf, Kps):
                     if frontError == 0:
                         SetAngularVelocity(0, 0)
                     else:
-                        SetAngularVelocity(maxVelocity - (maxVelocity - abs(frontError) * Kpf),
-                                           maxVelocity - (maxVelocity - abs(frontError) * Kpf))
-                else:
-                    if leftDistance + RightDistance <= 1.1:
-                        SetAngularVelocity(maxVelocity, -(maxVelocity - abs(frontError) * Kpf))
+                        SetAngularVelocity(maxVelocity - (maxVelocity - SaturationFunction(Utf, Cmax, Cmin)),
+                                           maxVelocity - (maxVelocity - SaturationFunction(Utf, Cmax, Cmin)))
             else:
-                if leftDistance + RightDistance <= 1.1:
-                    SetAngularVelocity(maxVelocity, -(maxVelocity - abs(frontError) * Kpf))
+                if current_maze_file == maze_file[0]:
+                    SetAngularVelocity(-maxVelocity + (maxVelocity - SaturationFunction(Utf, Cmax, Cmin)),
+                                       -maxVelocity + (maxVelocity - SaturationFunction(Utf, Cmax, Cmin)))
                 else:
-                    if (RightDistance > leftDistance):
-                        SetAngularVelocity(maxVelocity, -(maxVelocity - abs(frontError) * Kpf))
-                    else:
-                        SetAngularVelocity(-(maxVelocity - abs(frontError) * Kpf), maxVelocity)
-                # else:
-                #     SetAngularVelocity(-maxVelocity + (maxVelocity - abs(frontError) * Kpf),
-                #                    -maxVelocity + (maxVelocity - abs(frontError) * Kpf))
+                    wallFollowing('l', targetDistances, Kpf, Kps)
 
     if targetWall == 'l':
         if len(currentDistances) == 3:
             leftError = targetDistances[0] - currentDistances[0]
-            Utl = leftError * Kps
+            Utl = abs(leftError) * Kps
             print(f"3left {leftError}")
-            print("Saturation:",SaturationFunction(Utl, Cmax, Cmin))
-            if leftError < 0:
-                SetAngularVelocity(SaturationFunction(Utl, Cmax, Cmin), maxVelocity)
+            print("UTL:", leftError * Kps)
+            if currentDistances[0] + currentDistances[2] > 1.1 and currentDistances[1] <= 1.7:
+                if (targetDistances[0] >= targetDistances[2]):
+                    SetAngularVelocity(maxVelocity - (maxVelocity - SaturationFunction(Utl, Cmax, Cmin)), maxVelocity)
+                else:
+                    SetAngularVelocity(maxVelocity, maxVelocity - SaturationFunction(Utl, Cmax, Cmin))
             else:
-                # if -0.001 <= leftError <= 0.001:
-                #     SetAngularVelocity(maxVelocity, maxVelocity)
-                # else:
-                #     SetAngularVelocity(maxVelocity, maxVelocity - abs(leftError) * Kps)
-                SetAngularVelocity(maxVelocity, SaturationFunction(Utl, Cmax, Cmin))
+                if leftError < 0:  # far away from wall move towards wall.
+                    SetAngularVelocity(maxVelocity - SaturationFunction(Utl, Cmax, Cmin), maxVelocity)
+
+                else:  # close to wall, move away from wall.
+                    SetAngularVelocity(maxVelocity, maxVelocity - SaturationFunction(Utl, Cmax, Cmin))
+
         elif len(currentDistances) == 5:
             leftDistance = (currentDistances[0] + currentDistances[1]) / 2
             rightDistance = (currentDistances[3] + currentDistances[4]) / 2
             leftError = targetDistances[0] - leftDistance
-            Utl = leftError * Kps
+            Utl = abs(leftError) * Kps
             print(f"5left {leftError}")
             print("Saturation:", SaturationFunction(Utl, Cmax, Cmin))
-            if leftError < 0:
-                # if rightDistance > 1:
-                #     SetAngularVelocity(maxVelocity, maxVelocity - abs(leftError) * Kps)
-                # else:
-                #     SetAngularVelocity(maxVelocity - abs(leftError) * Kps, maxVelocity)
-                SetAngularVelocity(SaturationFunction(Utl, Cmax, Cmin), maxVelocity)
+            if leftDistance + rightDistance > 1.1 and currentDistances[2] <= 1.7:
+                if leftDistance >= rightDistance:
+                    SetAngularVelocity(maxVelocity - (maxVelocity - SaturationFunction(Utl, Cmax, Cmin)), maxVelocity)
+                else:
+                    SetAngularVelocity(maxVelocity, maxVelocity - (maxVelocity - SaturationFunction(Utl, Cmax, Cmin)))
             else:
-                # SetAngularVelocity(maxVelocity, maxVelocity - abs(leftError) * Kps)
-                SetAngularVelocity(maxVelocity, SaturationFunction(Utl, Cmax, Cmin))
+                if leftError < 0:
+                    SetAngularVelocity(maxVelocity - SaturationFunction(Utl, Cmax, Cmin), maxVelocity)
+                else:
+                    SetAngularVelocity(maxVelocity, maxVelocity - SaturationFunction(Utl, Cmax, Cmin))
 
     if targetWall == 'r':
         if len(currentDistances) == 3:
             rightError = targetDistances[2] - currentDistances[2]
+            Utl = abs(rightError) * Kps
+            print(f"3left {rightError}")
+            print("UTL:", rightError * Kps)
 
-            if rightError < 0:
-                SetAngularVelocity(maxVelocity, maxVelocity - abs(rightError) * Kps)
-            else:
-                SetAngularVelocity(maxVelocity - abs(rightError) * Kps, maxVelocity)
+            if rightError < 0:  # far away from wall move towards wall.
+                SetAngularVelocity(maxVelocity, maxVelocity - SaturationFunction(Utl, Cmax, Cmin))
+
+            else:  # close to wall, move away from wall.
+                SetAngularVelocity(maxVelocity - SaturationFunction(Utl, Cmax, Cmin), maxVelocity)
 
         elif len(currentDistances) == 5:
-            rightError = targetDistances[2] - currentDistances[2]
+            leftDistance = (currentDistances[0] + currentDistances[1]) / 2
+            rightDistance = (currentDistances[3] + currentDistances[4]) / 2
+            rightError = targetDistances[2] - rightDistance
+            Utl = abs(rightError) * Kps
+            print(f"5left {rightError}")
+            print("Saturation:", SaturationFunction(Utl, Cmax, Cmin))
             if rightError < 0:
-                SetAngularVelocity(maxVelocity, maxVelocity - abs(rightError) * Kps)
+                SetAngularVelocity(maxVelocity, maxVelocity - SaturationFunction(Utl, Cmax, Cmin))
             else:
-                SetAngularVelocity(maxVelocity - abs(rightError) * Kps, maxVelocity)
+                SetAngularVelocity(maxVelocity - SaturationFunction(Utl, Cmax, Cmin), maxVelocity)
 
 
 def SetAngularVelocity(left_velocity, right_velocity):
@@ -164,11 +172,11 @@ def SetAngularVelocity(left_velocity, right_velocity):
 
 
 def SaturationFunction(VelocityControl, Cmax, Cmin):
-    if VelocityControl > Cmax:
+    if VelocityControl > Cmax:  # far away from object
         return Cmax
-    elif Cmin <= VelocityControl <= Cmax:
+    elif Cmin <= VelocityControl <= Cmax:  # Somewhat close to object
         return VelocityControl
-    else:
+    else:  # Really close to object.
         return Cmin
 
 
@@ -178,7 +186,7 @@ robot = MyRobot()
 # Loads the environment from the maze file
 maze_file = ['worlds/mazes/Labs/Lab2/Lab2_Task1.xml', 'worlds/mazes/Labs/Lab2/Lab2_Task2_1.xml',
              'worlds/mazes/Labs/Lab2/Lab2_Task2_2.xml']
-current_maze_file = maze_file[0]
+current_maze_file = maze_file[1]
 robot.load_environment(current_maze_file)
 
 # Move robot to a random staring position listed in maze file
@@ -198,11 +206,11 @@ while robot.experiment_supervisor.step(robot.timestep) != -1:
     # Reads and Prints Robot's Encoder Readings
     # print("Motor Encoder Readings: ", robot.get_encoder_readings())
     # print("Simulation Time", robot.experiment_supervisor.getTime())
-    # print(f"Orientation, {robot.get_compass_reading()}")
+    print(f"Orientation, {robot.get_compass_reading()}")
 
     print(robot.get_compass_reading())
 
     # print(f"Center of Robot Distances Average={getDistanceReadings()}")
-    wallFollowing('f', [0.3, 1, 0.3], 0.1, 0.1)
+    wallFollowing('f', [0.4, 0.5, 0.4], 1, 0.1)
 
     # SetAngularVelocity(0.8,-0.8)
