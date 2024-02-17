@@ -58,9 +58,20 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
 
     frontError = targetDistances[1] - currentDistances[2]
     Utf = abs(frontError) * Kpf
-
+    parallel = 0;
     leftError = targetDistances[0] - leftDistance
     rightError = targetDistances[2] - rightDistance
+
+    tolerance = 5
+    currentOrientation = robot.get_compass_reading()
+    for target in target_orientations:
+        orientationDifference = abs(currentOrientation - target)
+        print(target, currentOrientation)
+
+        if orientationDifference > 360:
+            orientationDifference = 360 - orientationDifference
+        if orientationDifference < tolerance:
+            parallel = 1
 
     print(
         f'Distances from Walls: {[leftDistance, currentDistances[2], rightDistance]}')
@@ -71,31 +82,27 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
     originalWall = targetWall
     if rightDistance + leftDistance >= 1.1:
         targetWall = 's'
-    print(targetWall)
+        print(parallel)
 
     if frontError < 0:  # far away from front wall move foward
         if targetWall == 'l':
             wallFollowingLeft(leftError, SaturationFunction(Utf, Cmax, Cmin), Cmax, Cmin, Kps)
         elif targetWall == 'r':
             wallFollowingRight(rightError, SaturationFunction(Utf, Cmax, Cmin), Cmax, Cmin, Kps)
-        elif targetWall == 's':
+        elif targetWall == 's' and parallel == 0:
             if originalWall == 'l':
-                if leftDistance >= 0.8:
-                    SetAngularVelocity(0.58 * SaturationFunction(Utf, Cmax, Cmin), SaturationFunction(Utf, Cmax, Cmin))
+                if leftDistance >= 1:
+                    SetAngularVelocity(0.58 * Cmax, Cmax)
                 else:
-                    SetAngularVelocity(SaturationFunction(Utf, Cmax, Cmin), 0.58 * SaturationFunction(Utf, Cmax, Cmin))
+                    SetAngularVelocity(Cmax, 0.58 * Cmax)
             elif originalWall == 'r':
-                if rightDistance >= 0.8:
+                if rightDistance >= 1:
                     SetAngularVelocity(SaturationFunction(Utf, Cmax, Cmin), 0.58 * SaturationFunction(Utf, Cmax, Cmin))
                 else:
                     SetAngularVelocity(SaturationFunction(Utf, Cmax, Cmin), 0.58 * SaturationFunction(Utf, Cmax, Cmin))
-
-
-
         else:
             SetAngularVelocity(SaturationFunction(Utf, Cmax, Cmin), SaturationFunction(Utf, Cmax, Cmin))
     else:  # passed the wall Reverse
-
         if current_maze_file == maze_file[0]:
             SetAngularVelocity(-maxVelocity + (maxVelocity - SaturationFunction(Utf, Cmax, Cmin)),
                                -maxVelocity + (maxVelocity - SaturationFunction(Utf, Cmax, Cmin)))
@@ -104,11 +111,11 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
                 return 0
         else:
             if targetWall == 'l':
-                # wallFollowingLeft(leftError, maxVelocity, Cmax, Cmin, Kps)
-                if rightDistance + leftDistance >= 1.1:
-                    SetAngularVelocity(0, 0)
+                wallFollowingLeft(leftError, maxVelocity, Cmax, Cmin, Kps)
             elif targetWall == 'r':
                 wallFollowingRight(rightError, maxVelocity, Cmax, Cmin, Kps)
+            elif targetWall == 's':
+                SetAngularVelocity(0, 0)
             else:
                 SetAngularVelocity(SaturationFunction(Utf, Cmax, Cmin), SaturationFunction(Utf, Cmax, Cmin))
 
@@ -141,6 +148,7 @@ robot.load_environment(current_maze_file)
 
 # Move robot to a random staring position listed in maze file
 robot.move_to_start()
+target_orientations = [180, 90, 0, 270, 360]
 
 while robot.experiment_supervisor.step(robot.timestep) != -1:
     # Distance Traveled by center of the robot. Average of the sum of all encoder readings*wheel radius
@@ -155,5 +163,5 @@ while robot.experiment_supervisor.step(robot.timestep) != -1:
     print(f"Orientation, {robot.get_compass_reading()}")
 
     # print(f"Center of Robot Distances Average={getDistanceReadings()}")
-    if wallFollowing([0.4, 0.5, 0.4], 1, 1, 'l') == 0:
+    if wallFollowing([0.4, 0.5, 0.4], 1, 1, 'r') == 0:
         break
