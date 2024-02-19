@@ -31,8 +31,6 @@ def getDistanceReadings():
 # depending on the front wall
 def wallFollowingLeft(leftError, maxVelocity, Cmax, Cmin, Kps):
     Utl = abs(leftError) * Kps
-    # print(round(Utl,3))
-    # print("Saturation Left:", SaturationFunction(Utl, Cmax, Cmin))
 
     if leftError < 0:
         if maxVelocity != SaturationFunction(Utl, Cmax, Cmin):
@@ -47,7 +45,6 @@ def wallFollowingLeft(leftError, maxVelocity, Cmax, Cmin, Kps):
 # depending on the front wall
 def wallFollowingRight(rightError, maxVelocity, Cmax, Cmin, Kps):
     Utr = abs(rightError) * Kps
-    # print("Saturation Right:", SaturationFunction(Utr, Cmax, Cmin))
     if rightError < 0:
         if maxVelocity != SaturationFunction(Utr, Cmax, Cmin):
             SetAngularVelocity(maxVelocity, abs(maxVelocity - SaturationFunction(Utr, Cmax, Cmin)))
@@ -82,20 +79,19 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
     tolerance = 5
 
     print(f'Distances from Walls: {[leftDistance, currentDistances[2], rightDistance]}')
-    print(f"front Error: {frontError:.3}")
+    # print(f"front Error: {frontError:.3}")
     # print(f"left Error: {leftError:.3}")
     # print(f"right Error: {rightError:.3}")
     # print("FLAG Change Before:", flag_Change[0])
     # print("Saturation Front:", SaturationFunction(Utf, Cmax, Cmin))
     originalWall = targetWall
 
-    print("TARGET WALL", targetWall)
+    # print("TARGET WALL", targetWall)
     # print("ORIENTATION REACHED: ,", Target_reaches[0])
     # print("LEFT TURNS",Left_Turns[0])
     if Left_Turns[0] == 1 or Left_Turns[0] == -1 or Left_Turns[0] == 0:
-        if rightDistance + leftDistance >= 1.1 and current_maze_file != maze_file[
-            0]:  # Whenever there is an open space either left
-            # or right side
+        if rightDistance + leftDistance >= 1.1 and current_maze_file != maze_file[0]:  # Whenever there is an open
+            # space either left or right side
             targetWall = 'c'  # change to c for curving
 
             for target in target_orientations:
@@ -117,18 +113,19 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
 
             if frontError >= -0.4:
                 flag_Change[0] = 1
-                # print("LOLLLL Error")
                 Target_reaches[0] = 0
 
         if frontError < 0:  # far away from front wall move foward
 
             if current_maze_file == maze_file[0] and -0.1 <= frontError <= 0.01:
-                if leftDistance < rightDistance:
-                    SetAngularVelocity(-SaturationFunction(Utf, Cmax, Cmin),
-                                       SaturationFunction(Utf, Cmax, Cmin) + 0.05)
-                else:
-                    SetAngularVelocity(SaturationFunction(Utf, Cmax, Cmin) + 0.05,
-                                       -SaturationFunction(Utf, Cmax, Cmin))
+                if 0 < robot.get_compass_reading() <= 60:
+                    SetAngularVelocity(SaturationFunction(Utf, Cmax, Cmin),
+                                       -(SaturationFunction(Utf, Cmax, Cmin) + 0.05))
+                elif 300 <= robot.get_compass_reading() < 360:
+                    SetAngularVelocity(-(SaturationFunction(Utf, Cmax, Cmin) + 0.05),
+                                       SaturationFunction(Utf, Cmax, Cmin))
+                elif robot.get_compass_reading() == 360 or robot.get_compass_reading() == 0:
+                    SetAngularVelocity(SaturationFunction(Utf, Cmax, Cmin), SaturationFunction(Utf, Cmax, Cmin))
             elif targetWall == 'l':
                 flag_Change[0] = 1
                 Left_Turns[0] = 0
@@ -143,12 +140,11 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
                 if flag_Change[0] == 1:
                     if originalWall == 'l':
                         if leftError <= rightError or leftDistance >= 0.8 or Left_Turns[0] == 1:
-                            print("HEY")
+
                             SetAngularVelocity(0.4 * Cmax, Cmax)
                             Left_Turns[0] = 1
 
                         else:
-                            print("LOLO")
                             SetAngularVelocity(Cmax, 0.58 * Cmax)
 
                     elif originalWall == 'r':
@@ -159,12 +155,11 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
                             SetAngularVelocity(0.58 * Cmax, Cmax)
 
             elif targetWall == 'c' and Target_reaches[0] == 1:
-                print("BYD")
+
                 if originalWall == 'l':
                     SetAngularVelocity(SaturationFunction(Utf, Cmax, Cmin), SaturationFunction(Utf, Cmax, Cmin))
                 elif originalWall == 'r':
                     if 0.8 <= rightDistance <= 1.1:
-                        print("hey")
                         SetAngularVelocity(Cmax, 0.4 * Cmax)
                         Left_Turns[0] = -1
                         Target_reaches[0] = 0
@@ -184,12 +179,12 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
                     if robot.get_compass_reading() == 360 or robot.get_compass_reading() == 0:
                         SetAngularVelocity(-maxVelocity + (maxVelocity - SaturationFunction(Utf, Cmax, Cmin)),
                                            -maxVelocity + (maxVelocity - SaturationFunction(Utf, Cmax, Cmin)))
-                    elif leftDistance < rightDistance:
-                        SetAngularVelocity(-SaturationFunction(Utf, Cmax, Cmin),
-                                           SaturationFunction(Utf, Cmax, Cmin) + 0.05)
-                    else:
-                        SetAngularVelocity(SaturationFunction(Utf, Cmax, Cmin) + 0.05,
-                                           -SaturationFunction(Utf, Cmax, Cmin))
+                    elif 0 < robot.get_compass_reading() <= 45:
+                        SetAngularVelocity(SaturationFunction(Utf, Cmax, Cmin),
+                                           -(SaturationFunction(Utf, Cmax, Cmin) + 0.05))
+                    elif 300 < robot.get_compass_reading() < 360:
+                        SetAngularVelocity(-(SaturationFunction(Utf, Cmax, Cmin) + 0.05),
+                                           SaturationFunction(Utf, Cmax, Cmin))
             else:
                 if targetWall == 'l':
                     SetAngularVelocity(0, 0)
@@ -207,32 +202,29 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
                     SetAngularVelocity(SaturationFunction(Utf, Cmax, Cmin), SaturationFunction(Utf, Cmax, Cmin))
     else:
         for target in target_orientations:
-            print(initial_orientation[0])
+
             if target == initial_orientation[0]:
                 continue
             orientationDifference = abs(currentOrientation - target)
-            # print("Target,Orientation:", currentOrientation, target)
 
             if orientationDifference > 360:
                 orientationDifference = 360 - orientationDifference
-            # print("INITIAL orientation:", initial_orientation[0])
-            # print("ORIETNATION DIFFERENCE,", currentOrientation, "-", target)
+
             if orientationDifference <= tolerance:
-                # print("ORIENTATION WEhy")
                 Left_Turns[0] = 0
 
         if targetWall == 'l':
             SetAngularVelocity(Cmax, -Cmax)
-            # print("Turnaround")
+
         elif targetWall == 'r':
-            # print("Turnaround")
+
             SetAngularVelocity(-Cmax, Cmax)
 
 
 def SetAngularVelocity(left_velocity, right_velocity):
     robot.set_left_motors_velocity(left_velocity / robot.wheel_radius)
     robot.set_right_motors_velocity(right_velocity / robot.wheel_radius)
-    print("Velocities: ", round(left_velocity, 3), round(right_velocity, 3))
+    # print("Velocities: ", round(left_velocity, 3), round(right_velocity, 3))
 
 
 def SaturationFunction(VelocityControl, Cmax, Cmin):
@@ -252,7 +244,7 @@ maze_file = ['worlds/mazes/Labs/Lab2/Lab2_Task1.xml', 'worlds/mazes/Labs/Lab2/La
              'worlds/mazes/Labs/Lab2/Lab2_Task2_2.xml', 'worlds/mazes/Labs/Lab2/Lab2_EC_1.xml',
              'worlds/mazes/Labs/Lab2/Lab2_EC_2.xml']
 
-current_maze_file = maze_file[0]  # Will select the proper map to perform the task.
+current_maze_file = maze_file[1]  # Will select the proper map to perform the task.
 robot.load_environment(current_maze_file)
 
 # Move robot to a random staring position listed in maze file
@@ -264,17 +256,14 @@ flag_Change = [1]  # Used to limit the time it takes to change the target orient
 Left_Turns = [0]
 
 while robot.experiment_supervisor.step(robot.timestep) != -1:
-    # Distance Traveled by center of the robot. Average of the sum of all encoder readings*wheel radius
-    Distance_Traveled = sum(robot.get_encoder_readings()) * robot.wheel_radius / 4
-    # print("Distance_Traveled=", Distance_Traveled)
 
     # print("Max rotational motor velocity: ", robot.max_motor_velocity)
 
     # Reads and Prints Robot's Encoder Readings
     # print("Motor Encoder Readings: ", robot.get_encoder_readings())
     # print("Simulation Time", robot.experiment_supervisor.getTime())
-    print(f"Orientation, {robot.get_compass_reading()}")
+    # print(f"Orientation, {robot.get_compass_reading()}")
 
     # print(f"Center of Robot Distances Average={getDistanceReadings()}")
-    if wallFollowing([0.4, 0.5, 0.4], 1, 1, 'l') == 0:
+    if wallFollowing([0.425, 0.5, 0.427], 1, 1, 'r') == 0:
         break
