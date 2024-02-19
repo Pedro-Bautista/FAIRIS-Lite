@@ -32,7 +32,7 @@ def getDistanceReadings():
 def wallFollowingLeft(leftError, maxVelocity, Cmax, Cmin, Kps):
     Utl = abs(leftError) * Kps
     # print(round(Utl,3))
-    print("Saturation Left:", SaturationFunction(Utl, Cmax, Cmin))
+    #print("Saturation Left:", SaturationFunction(Utl, Cmax, Cmin))
 
     if leftError < 0:
         if maxVelocity != SaturationFunction(Utl, Cmax, Cmin):
@@ -78,12 +78,12 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
     # Used for orientation calculation. Which tells the robot how far to rotate and when to stop
     tolerance = 5
 
-    print(f'Distances from Walls: {[leftDistance, currentDistances[2], rightDistance]}')
-    print(f"front Error: {frontError:.3}")
-    print(f"left Error: {leftError:.3}")
-    print(f"right Error: {rightError:.3}")
-    print("FLAG Change Before:", flag_Change[0])
-    print("Saturation Front:", SaturationFunction(Utf, Cmax, Cmin))
+    #print(f'Distances from Walls: {[leftDistance, currentDistances[2], rightDistance]}')
+    #print(f"front Error: {frontError:.3}")
+    #print(f"left Error: {leftError:.3}")
+    #print(f"right Error: {rightError:.3}")
+    #print("FLAG Change Before:", flag_Change[0])
+    #print("Saturation Front:", SaturationFunction(Utf, Cmax, Cmin))
     originalWall = targetWall
 
     if rightDistance + leftDistance >= 1.1:  # Whenever there is an open space either left
@@ -99,24 +99,29 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
 
             if orientationDifference > 360:
                 orientationDifference = 360 - orientationDifference
-            print("INITIAL orientation:", initial_orientation[0])
-            print("ORIETNATION DIFFERENCE,", currentOrientation, "-", target)
+            #print("INITIAL orientation:", initial_orientation[0])
+            #print("ORIETNATION DIFFERENCE,", currentOrientation, "-", target)
             if orientationDifference <= tolerance:
                 Target_reaches[0] = 1
                 if flag_Change[0] == 1:
                     flag_Change[0] = 0
                     initial_orientation[0] = target
+                    Left_Turns[0] = 0
+
         if frontError >= -0.4:
             flag_Change[0] = 1
-            print("LOLLLL Error")
+            #print("LOLLLL Error")
             Target_reaches[0] = 0
-    print("TARGET WALL", targetWall)
-    print("ORIENTATION REACHED: ,", Target_reaches[0])
+
+    #print("TARGET WALL", targetWall)
+    #print("ORIENTATION REACHED: ,", Target_reaches[0])
 
     if frontError < 0:  # far away from front wall move foward
         if targetWall == 'l':
             flag_Change[0] = 1
+            Left_Turns[0] = 0
             wallFollowingLeft(leftError, SaturationFunction(Utf, Cmax, Cmin), Cmax, Cmin, Kps)
+
         elif targetWall == 'r':
             flag_Change[0] = 1
             wallFollowingRight(rightError, SaturationFunction(Utf, Cmax, Cmin), Cmax, Cmin, Kps)
@@ -124,12 +129,13 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
         elif targetWall == 'c' and Target_reaches[0] == 0:
             if flag_Change[0] == 1:
                 if originalWall == 'l':
-                    if leftError <= rightError or leftDistance>=0.8:
-                        print("HEY")
+                    if leftError <= rightError or leftDistance >= 0.8 or Left_Turns[0] == 1:
+                        #print("HEY")
                         SetAngularVelocity(0.4 * Cmax, Cmax)
+                        Left_Turns[0] = 1
 
                     else:
-                        print("LOLO")
+                        #print("LOLO")
                         SetAngularVelocity(Cmax, 0.58 * Cmax)
 
                 elif originalWall == 'r':
@@ -137,9 +143,10 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
                         SetAngularVelocity(Cmax, 0.58 * Cmax)
                     else:
                         SetAngularVelocity(Cmax, 0.58 * Cmax)
-            else:
-                print("BYW")
-                SetAngularVelocity(SaturationFunction(Utf, Cmax, Cmin), SaturationFunction(Utf, Cmax, Cmin))
+
+        elif targetWall == 'c' and Target_reaches[0]==1:
+            print("BYD")
+            wallFollowingLeft(leftError, SaturationFunction(Utf, Cmax, Cmin), Cmax, Cmin, Kps)
 
         else:
             SetAngularVelocity(SaturationFunction(Utf, Cmax, Cmin), SaturationFunction(Utf, Cmax, Cmin))
@@ -169,7 +176,7 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
 def SetAngularVelocity(left_velocity, right_velocity):
     robot.set_left_motors_velocity(left_velocity / robot.wheel_radius)
     robot.set_right_motors_velocity(right_velocity / robot.wheel_radius)
-    print("Velocities: ", round(left_velocity, 3), round(right_velocity, 3))
+    #print("Velocities: ", round(left_velocity, 3), round(right_velocity, 3))
 
 
 def SaturationFunction(VelocityControl, Cmax, Cmin):
@@ -198,6 +205,7 @@ target_orientations = [180, 90, 0, 270]  # Used to tell the robot when to stop t
 Target_reaches = [0]
 initial_orientation = [robot.get_compass_reading()]  # Grabs the initial reading of the orientation of the robot
 flag_Change = [1]  # Used to limit the time it takes to change the target orientation.
+Left_Turns = [0]
 
 while robot.experiment_supervisor.step(robot.timestep) != -1:
     # Distance Traveled by center of the robot. Average of the sum of all encoder readings*wheel radius
