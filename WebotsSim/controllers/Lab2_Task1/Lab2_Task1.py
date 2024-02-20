@@ -38,7 +38,7 @@ def wallFollowingLeft(leftError, maxVelocity, Cmax, Cmin, Kps):
         else:
             SetAngularVelocity(SaturationFunction(Utl, Cmax, Cmin), SaturationFunction(Utl, Cmax, Cmin))
     else:
-        SetAngularVelocity(maxVelocity, maxVelocity - SaturationFunction(Utl, Cmax, Cmin))
+        SetAngularVelocity(maxVelocity, abs(maxVelocity - SaturationFunction(Utl, Cmax, Cmin)))
 
 
 # This function is used to follow the right wall. Will adjust the distance from the right wall as well as the speed
@@ -88,7 +88,7 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
 
     # print("TARGET WALL", targetWall)
     # print("ORIENTATION REACHED: ,", Target_reaches[0])
-    # print("LEFT TURNS",Left_Turns[0])
+    #print("LEFT TURNS", Left_Turns[0])
     if Left_Turns[0] == 1 or Left_Turns[0] == -1 or Left_Turns[0] == 0:
         if rightDistance + leftDistance >= 1.1 and current_maze_file != maze_file[0]:  # Whenever there is an open
             # space either left or right side
@@ -149,6 +149,7 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
 
                     elif originalWall == 'r':
                         if rightError <= leftError or rightDistance >= 0.8 or Left_Turns[0] == -1:
+
                             SetAngularVelocity(Cmax, 0.4 * Cmax)
                             Left_Turns[0] = -1
                         else:
@@ -159,7 +160,7 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
                 if originalWall == 'l':
                     SetAngularVelocity(SaturationFunction(Utf, Cmax, Cmin), SaturationFunction(Utf, Cmax, Cmin))
                 elif originalWall == 'r':
-                    if 0.8 <= rightDistance <= 1.1:
+                    if 0.8 <= rightDistance <= 1.1 and Left_Turns[0] != -1:
                         SetAngularVelocity(Cmax, 0.4 * Cmax)
                         Left_Turns[0] = -1
                         Target_reaches[0] = 0
@@ -191,40 +192,47 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
                     Left_Turns[0] = -2
                 elif targetWall == 'r':
                     SetAngularVelocity(0, 0)
-                    Left_Turns[0] = -5
+                    Left_Turns[0] = -2
 
                 elif targetWall == 'c':
                     if originalWall == 'l':
                         SetAngularVelocity(Cmax, 0.2 * Cmax)
                     elif originalWall == 'r':
+                        #print("HEYsdf")
                         SetAngularVelocity(0.2 * Cmax, Cmax)
                 else:
+                   # print("sdfjklhwseff")
                     SetAngularVelocity(SaturationFunction(Utf, Cmax, Cmin), SaturationFunction(Utf, Cmax, Cmin))
     else:
         for target in target_orientations:
+           # print(initial_orientation[0])
 
             if target == initial_orientation[0]:
+                continue
+            print(target, initial_orientation[0])
+
+            if abs(target-initial_orientation[0])==90 or abs(target-(initial_orientation[0]+360))==90:
                 continue
             orientationDifference = abs(currentOrientation - target)
 
             if orientationDifference > 360:
                 orientationDifference = 360 - orientationDifference
 
-            if orientationDifference <= tolerance:
+            if orientationDifference <= 2*tolerance:
                 Left_Turns[0] = 0
 
         if targetWall == 'l':
             SetAngularVelocity(Cmax, -Cmax)
 
         elif targetWall == 'r':
-
+            #print("TURNAROUND")
             SetAngularVelocity(-Cmax, Cmax)
 
 
 def SetAngularVelocity(left_velocity, right_velocity):
     robot.set_left_motors_velocity(left_velocity / robot.wheel_radius)
     robot.set_right_motors_velocity(right_velocity / robot.wheel_radius)
-    # print("Velocities: ", round(left_velocity, 3), round(right_velocity, 3))
+    #print("Velocities: ", round(left_velocity, 3), round(right_velocity, 3))
 
 
 def SaturationFunction(VelocityControl, Cmax, Cmin):
@@ -262,7 +270,7 @@ while robot.experiment_supervisor.step(robot.timestep) != -1:
     # Reads and Prints Robot's Encoder Readings
     # print("Motor Encoder Readings: ", robot.get_encoder_readings())
     # print("Simulation Time", robot.experiment_supervisor.getTime())
-    # print(f"Orientation, {robot.get_compass_reading()}")
+   # print(f"Orientation, {robot.get_compass_reading()}")
 
     # print(f"Center of Robot Distances Average={getDistanceReadings()}")
     if wallFollowing([0.425, 0.5, 0.427], 1, 1, 'r') == 0:
