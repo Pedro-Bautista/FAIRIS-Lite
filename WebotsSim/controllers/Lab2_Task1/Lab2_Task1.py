@@ -79,7 +79,7 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
     tolerance = 5
 
     print(f'Distances from Walls: {[leftDistance, currentDistances[2], rightDistance]}')
-    # print(f"front Error: {frontError:.3}")
+    print(f"front Error: {frontError:.3}")
     # print(f"left Error: {leftError:.3}")
     # print(f"right Error: {rightError:.3}")
     # print("FLAG Change Before:", flag_Change[0])
@@ -112,7 +112,7 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
                         initial_orientation[0] = target
                         Left_Turns[0] = 0
 
-            if frontError >= -0.4:
+            if frontError >= -0.35:
                 flag_Change[0] = 1
                 Target_reaches[0] = 0
 
@@ -161,10 +161,11 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
                             Left_Turns[0] = -1
                         else:
                             print("LLOLF")
-                            SetAngularVelocity(0.58 * Cmax, Cmax)
+                            SetAngularVelocity(0.59 * Cmax, Cmax)
                             Left_Turns[0] = 1
                 else:
                     if frontError<=-1 and abs(rightDistance-leftDistance) <=0.15:
+
                         flag_Change[0]=1
 
             elif targetWall == 'c' and Target_reaches[0] == 1:
@@ -172,7 +173,7 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
                 if originalWall == 'l':
                     SetAngularVelocity(SaturationFunction(Utf, Cmax, Cmin), SaturationFunction(Utf, Cmax, Cmin))
                 elif originalWall == 'r':
-                    if 0.8 <= rightDistance <= 1.1 and rightDistance>=leftDistance and Left_Turns[0] != -1:
+                    if 0.8 <= rightDistance <= 1.1 and rightDistance>=leftDistance and Left_Turns[0] != -1 and Target_reaches[0]!=1:
                         SetAngularVelocity(Cmax, 0.4 * Cmax)
                         print("HEY")
                         Left_Turns[0] = -1
@@ -315,5 +316,5 @@ while robot.experiment_supervisor.step(robot.timestep) != -1:
     # print(f"Orientation, {robot.get_compass_reading()}")
 
     # print(f"Center of Robot Distances Average={getDistanceReadings()}")
-    if wallFollowing([0.425, 0.5, 0.427], 1, 1, 'r') == 0:
+    if wallFollowing([0.425, 0.5, 0.427], 1, 1, 'l') == 0:
         break
