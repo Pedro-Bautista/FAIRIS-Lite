@@ -79,7 +79,7 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
     tolerance = 5
 
     print(f'Distances from Walls: {[leftDistance, currentDistances[2], rightDistance]}')
-    print(f"front Error: {frontError:.3}")
+    # print(f"front Error: {frontError:.3}")
     originalWall = targetWall
 
     if Left_Turns[0] == 0:
@@ -108,11 +108,8 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
                 flag_Change[0] = 1
                 Target_reaches[0] = 0
 
-        print("TARGET WALL", targetWall)
-        print("ORIENTATION REACHED: ,", Target_reaches[0])
-
         if frontError < 0:  # far away from front wall move foward
-            # For First Maze to stop at 0.5 in parallel
+            # For First Maze to have the robot self orient itself to become parallel.
             if current_maze_file == maze_file[0] and -0.1 <= frontError <= 0.01:
                 if 0 < robot.get_compass_reading() <= 60:
                     SetAngularVelocity(SaturationFunction(Utf, Cmax, Cmin),
@@ -122,7 +119,8 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
                                        SaturationFunction(Utf, Cmax, Cmin))
                 elif robot.get_compass_reading() == 360 or robot.get_compass_reading() == 0:
                     SetAngularVelocity(SaturationFunction(Utf, Cmax, Cmin), SaturationFunction(Utf, Cmax, Cmin))
-            # To do a 180 degree turn
+
+            # Used to turn around 180
             elif frontError >= -0.1:
                 if targetWall == 'l':
                     SetAngularVelocity(0, 0)
@@ -131,11 +129,14 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
                     SetAngularVelocity(0, 0)
                     Left_Turns[0] = -2
 
+
+            # wall Follow Left
             elif targetWall == 'l':
                 flag_Change[0] = 1
                 Left_Turns[0] = 0
                 wallFollowingLeft(leftError, SaturationFunction(Utf, Cmax, Cmin), Cmax, Cmin, Kps)
 
+            # Wall Follow Right
             elif targetWall == 'r':
                 flag_Change[0] = 1
                 Left_Turns[0] = 0
@@ -182,7 +183,6 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
                         Target_reaches[0] = 0
 
             else:
-
                 SetAngularVelocity(SaturationFunction(Utf, Cmax, Cmin), SaturationFunction(Utf, Cmax, Cmin))
 
         else:  # passed the wall Reverse
@@ -213,10 +213,8 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
                     if originalWall == 'l':
                         SetAngularVelocity(Cmax, 0.2 * Cmax)
                     elif originalWall == 'r':
-                        print("HEYsdf")
                         SetAngularVelocity(0.2 * Cmax, Cmax)
                 else:
-                    print("sdfjklhwseff")
                     SetAngularVelocity(SaturationFunction(Utf, Cmax, Cmin), SaturationFunction(Utf, Cmax, Cmin))
     else:
         if Left_Turns[0] == -2:
@@ -224,7 +222,6 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
 
                 if target == initial_orientation[0]:
                     continue
-                print(target, initial_orientation[0])
 
                 if abs(target - initial_orientation[0]) == 90 or abs(target - (initial_orientation[0] + 360)) == 90:
                     continue
@@ -270,7 +267,7 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
 def SetAngularVelocity(left_velocity, right_velocity):
     robot.set_left_motors_velocity(left_velocity / robot.wheel_radius)
     robot.set_right_motors_velocity(right_velocity / robot.wheel_radius)
-    print("Velocities: ", round(left_velocity, 3), round(right_velocity, 3))
+    # print("Velocities: ", round(left_velocity, 3), round(right_velocity, 3))
 
 
 def SaturationFunction(VelocityControl, Cmax, Cmin):
@@ -290,7 +287,7 @@ maze_file = ['worlds/mazes/Labs/Lab2/Lab2_Task1.xml', 'worlds/mazes/Labs/Lab2/La
              'worlds/mazes/Labs/Lab2/Lab2_Task2_2.xml', 'worlds/mazes/Labs/Lab2/Lab2_EC_1.xml',
              'worlds/mazes/Labs/Lab2/Lab2_EC_2.xml']
 
-current_maze_file = maze_file[1]  # Will select the proper map to perform the task.
+current_maze_file = maze_file[0]  # Will select the proper map to perform the task.
 robot.load_environment(current_maze_file)
 
 # Move robot to a random staring position listed in maze file

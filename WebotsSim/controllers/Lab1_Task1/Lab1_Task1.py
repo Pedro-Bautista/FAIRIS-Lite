@@ -1,5 +1,5 @@
-#Pedro Bautista U85594600
-#WebotsSim/controllers/Lab1_Task1/Lab1_Task1.py
+# Pedro Bautista U85594600
+# WebotsSim/controllers/Lab1_Task1/Lab1_Task1.py
 # Changes Working Directory to be at the root of FAIRIS-Lite
 import os
 import math
@@ -12,25 +12,39 @@ os.chdir("../..")
 from WebotsSim.libraries.MyRobot import MyRobot
 
 
+# Created a class to include all types of movement required by the robot.
 class RobotMovement:
+    # initialized the class where the maximum forward speed it to be passed. Also creates class lists for value history
     def __init__(self, maximum_forward_speed):
         self.maximum_forward_speed = maximum_forward_speed
         self.velocities_history = []
         self.distances_history = []
         self.angular_velocities_history = []
 
+    # Move foward function requires distance which is calculated from the specific waypoints.
     def move_forward(self, distance):
+        # velocity is calculated by the angular velocity given to the motor * the wheel radius.
         left_velocity = self.maximum_forward_speed * robot.wheel_radius
+        # When moving straight, the right velocity is the same as the left velocity.
         right_velocity = left_velocity
+        # center velocity is the average of both velocities
         center_velocity = (left_velocity + right_velocity) / 2
+        # creates a temporary list that stores the given distance. Same with the velocities
         distances = [distance, distance, distance]
         current_velocities = [round(left_velocity, 3), round(center_velocity, 3), round(right_velocity, 3)]
+        # Both distances and velocities are appended to the class list when called. Can grab this value by rembering
+        # in what order the functions were called.
         self.velocities_history.append(current_velocities)
         self.distances_history.append(distances)
+
+        # Time is calculated from the center distance divided by the center velocity.
         time = distances[1] / current_velocities[1]
 
+        # Returns temporary lists as well with time for functions below.
         return current_velocities, distances, time
 
+    # Move circular function requires radius of the circle, the portion traveled and the direction of the rotation to
+    # properly calculate the velocities
     def move_circular(self, Radius, portion_of_circle_traveled, rotation):
 
         # Grabs the axel length from the robot instance divides by 2 to get axel_mid
@@ -43,9 +57,12 @@ class RobotMovement:
         center_Distance = (2 * Radius * math.pi) * portion_of_circle_traveled
         left_distance, right_distance = 0, 0
 
+        # sets the left and right velocity to the max velocity possible from the max velocity set.
+        # The proper value will update depending on which condition is met.
         left_velocity, right_velocity = max_velocity_set * robot.wheel_radius, max_velocity_set * robot.wheel_radius
         angular_velocity = 0
 
+        # if Direction is clockwise, right velocity is properly calculated as well as the angular velocity and distances
         if rotation.lower() == "clockwise":
             # calculated based on the formula R=abs(axel_mid((left_velocity+right_Velocity)/(
             # left_velocity-right_Velocity)))
@@ -53,7 +70,8 @@ class RobotMovement:
             angular_velocity = (left_velocity - right_velocity) / axel_length
             left_distance = ((2 * math.pi) * (Radius + axel_mid)) * portion_of_circle_traveled
             right_distance = ((2 * math.pi) * (Radius - axel_mid)) * portion_of_circle_traveled
-
+        # if Direction is counterclockwise,left velocity is properly calculated as well as the angular velocity and
+        # distances
         elif rotation.lower() == "counterclockwise":
             # calculated based on the formula R=abs(axel_mid((left_velocity+right_Velocity)/(
             # right_velocity-left_Velocity)))
@@ -62,17 +80,21 @@ class RobotMovement:
             left_distance = (2 * math.pi * (Radius - axel_mid)) * portion_of_circle_traveled
             right_distance = (2 * math.pi * (Radius + axel_mid)) * portion_of_circle_traveled
 
+        # After the conditions are met, the center velocity is calculated using the radius and angular velocity
+        # around ICC
         center_Velocity = Radius * angular_velocity
-        curent_velocities = [round(left_velocity, 3), round(center_Velocity, 3), round(right_velocity, 3)]
+        # create temp lists that stores velocities, angular velocity for each wheel and the distances traveled and it
+        # gets appended to the class list.
+        current_velocities = [round(left_velocity, 3), round(center_Velocity, 3), round(right_velocity, 3)]
         current_angular_velocity = [left_velocity / robot.wheel_radius, right_velocity / robot.wheel_radius]
         self.angular_velocities_history.append(current_angular_velocity)
-        self.velocities_history.append(curent_velocities)
+        self.velocities_history.append(current_velocities)
         distances = [round(left_distance, 3), round(center_Distance, 3), round(right_distance, 3)]
         self.distances_history.append(distances)
 
         time = center_Distance / center_Velocity
 
-        return curent_velocities, distances, time
+        return current_velocities, distances, time
 
     def get_velocity_history(self):
         return self.velocities_history
@@ -133,7 +155,7 @@ P5P6 = RobotMovement1.prints("clockwise", "P5", "P6", 1.5, 0.25)[1][1] + P4P5
 # P6P7 Circular Movement
 P6P7 = RobotMovement1.prints("clockwise", "P6", "P7", 0.75, 0.5)[1][1] + P5P6
 Total_Distance = P6P7
-#print(Total_Distance)
+# print(Total_Distance)
 
 Velocity_Changed = False
 # Main Control Loop for Robot will break once the total distance is reached
@@ -207,8 +229,8 @@ while robot.experiment_supervisor.step(robot.timestep) != -1:
         else:
             robot.stop()
             print("Robot has reached the end of the simulation!")
-            #print(Total_Distance)
-            #print(Distance_Traveled)
+            # print(Total_Distance)
+            # print(Distance_Traveled)
             break
         if not Velocity_Changed:
             print(f"Velocities have changed. New velocities [Vl,Vc,Vr] are {RobotMovement1.velocities_history[6]}m/s")
@@ -217,6 +239,6 @@ while robot.experiment_supervisor.step(robot.timestep) != -1:
     else:
         robot.stop()
         print("Robot has reached the end of the simulation!")
-        #print(Total_Distance)
-        #print(Distance_Traveled)
+        # print(Total_Distance)
+        # print(Distance_Traveled)
         break
