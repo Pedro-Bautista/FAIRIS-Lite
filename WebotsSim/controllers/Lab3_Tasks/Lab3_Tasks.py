@@ -28,6 +28,10 @@ def getDistanceReadings():
 
 
 def findTarget(targetWall):
+    # targetFound[0]=Object not found, spin until found.
+    # targetFound=1: Target found and it centered in camera
+    # targetFound=2: Target was previously found, but was lost due to blockage. Turn and follow wall
+    # targetFound=3: After Turning Wall Follow
     objects = robot.rgb_camera.getRecognitionObjects()
     # Iterate over each object
     objectID = None
@@ -63,7 +67,8 @@ def findTarget(targetWall):
             if objectID is None:
                 targetFound[0] = 2
         if targetFound[0] == 2:
-            wallFollowing([0.45, 0.45, 0.45], 1, 1, targetWall)
+            #wallFollowing([0.45, 0.45, 0.45], 1, 1, targetWall)
+            NinetyDegreeTurns(0.8, targetWall)
 
 
 def CenterObjectPID(ObjectRelativePosition, Kps, Cmax, Cmin):
@@ -108,71 +113,44 @@ def wallFollowingRight(rightError, maxVelocity, Cmax, Cmin, Kps):
         SetAngularVelocity(abs(maxVelocity - SaturationFunction(Utr, Cmax, Cmin)), maxVelocity)
 
 
-def NinetyDegreeTurns(leftError, frontError, rightError, Cmax, Cmin, Kpf, originalWall):
-    tolerance = 5
+def NinetyDegreeTurns(Cmax, targetWall):
     currentOrientation = robot.get_compass_reading()
+    tolerance = 5
     currentDistances = getDistanceReadings()
     leftDistance = round(((currentDistances[0] + currentDistances[1]) / 2), 3)
     rightDistance = round(((currentDistances[3] + currentDistances[4]) / 2), 3)
-    Utf = abs(frontError) * Kpf
+    # if target is already reached return.
+    print("TARGET", Target_reaches[0])
+    if Target_reaches[0] == 1:
+        robot.stop()
+        return
 
     for target in target_orientations:
-        if target == initial_orientation[0]:
+        if target == initial_orientation[0] or (target - (initial_orientation[0] - 360)) == 0:
             continue
         orientationDifference = abs(currentOrientation - target)
 
         if orientationDifference > 360:
             orientationDifference = 360 - orientationDifference
 
-        print("DIFFERENCE", currentOrientation,target,orientationDifference)
+        # print("DIFFERENCE", currentOrientation, target, orientationDifference)
         if orientationDifference <= tolerance:
             Target_reaches[0] = 1
-            if flag_Change[0] == 1:
-                flag_Change[0] = 0
-                previousWall[0] = leftDistance
-                previousWall[1] = rightDistance
-                initial_orientation[0] = target
-                Left_Turns[0] = 0
+            initial_orientation[0] = target
+            previousWall[0] = leftDistance
+            previousWall[1] = rightDistance
 
-    if frontError >= -0.35:
-        flag_Change[0] = 1
-        Target_reaches[0] = 0
+    if targetWall == 'r':
+        if currentDistances[1] <= 0.5:
+            SetAngularVelocity(0.4 * Cmax, Cmax)
+        else:
+            SetAngularVelocity(Cmax, 0.4 * Cmax)
 
-    if Target_reaches[0] == 0:
-
-        if flag_Change[0] == 1:
-            if originalWall == 'l':
-                if leftError <= rightError or leftDistance >= 0.8 or Left_Turns[0] == 1:
-                    SetAngularVelocity(0.4 * Cmax, Cmax)
-                    Left_Turns[0] = 1
-                else:
-                    SetAngularVelocity(Cmax, 0.56 * Cmax)
-                    Left_Turns[0] = -1
-
-            elif originalWall == 'r':
-                if rightError <= leftError or rightDistance >= 0.8 or Left_Turns[0] == -1:
-
-                    SetAngularVelocity(Cmax, 0.4 * Cmax)
-                    Left_Turns[0] = -1
-                else:
-
-                    SetAngularVelocity(0.59 * Cmax, Cmax)
-                    Left_Turns[0] = 1
-
-    elif Target_reaches[0] == 1:
-        if originalWall == 'l':
-            SetAngularVelocity(SaturationFunction(Utf, Cmax, Cmin), SaturationFunction(Utf, Cmax, Cmin))
-        elif originalWall == 'r':
-            if 0.8 <= rightDistance <= 1.1 and rightDistance >= leftDistance and Left_Turns[0] != -1 and \
-                    Target_reaches[0] != 1:
-                SetAngularVelocity(Cmax, 0.4 * Cmax)
-
-                Left_Turns[0] = -1
-                Target_reaches[0] = 0
-            else:
-                SetAngularVelocity(SaturationFunction(Utf, Cmax, Cmin), SaturationFunction(Utf, Cmax, Cmin))
-
-                Target_reaches[0] = 0
+    elif targetWall == 'l':
+        if currentDistances[2] <= 0.5:
+            SetAngularVelocity(Cmax, 0.4 * Cmax)
+        else:
+            SetAngularVelocity(0.4 * Cmax, Cmax)
 
 
 def UTurns(targetWall, Cmax):
@@ -191,7 +169,6 @@ def UTurns(targetWall, Cmax):
             orientationDifference = 360 - orientationDifference
 
         if orientationDifference <= 2 * tolerance:
-            Left_Turns[0] = 0
             SetAngularVelocity(0, 0)
 
     if targetWall == 'l':
@@ -220,25 +197,29 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
     # Calculates left and right error of the robot based on the walls.
     leftError = targetDistances[0] - leftDistance
     rightError = targetDistances[2] - rightDistance
-    currentOrientation = robot.get_compass_reading()
 
     # Used for orientation calculation. Which tells the robot how far to rotate and when to stop
     tolerance = 5
 
     print(f'Distances from Walls: {[leftDistance, currentDistances[2], rightDistance]}')
-    print(f"front Error: {frontError:.3}")
-    originalWall = targetWall
+    print(f'PREVIOUS WALLS: {previousWall}')
+    # print(f"front Error: {frontError:.3}")
 
-    if rightDistance + leftDistance >= 1.1 and current_maze_file != maze_file[0] and targetWall != 'f':
-        NinetyDegreeTurns(leftError, frontError, rightError, Cmax, Cmin, Kpf, originalWall)
-        print("Target Reached", Target_reaches[0])
-        print("FLAG",flag_Change)
-        print(previousWall)
+    if current_maze_file != maze_file[0] and targetWall != 'f':
+        print("BYE")
+        NinetyDegreeTurns(Cmax, targetWall)
         if Target_reaches[0] != 1:
             return
         else:
-            if leftDistance-previousWall[0] >=10 or rightDistance-previousWall[1]>10:
-                targetFound[0]=0
+            if leftDistance - previousWall[0] >= 5 or rightDistance - previousWall[1] > 5:
+                print("TIME", robot.experiment_supervisor.getTime() - previousTime[0])
+                if robot.experiment_supervisor.getTime() - previousTime[0] <= 0.45:
+                    MotionToGoal()
+                else:
+                    # targetFound[0] = 0
+                    robot.stop()
+            else:
+                previousTime[0] = robot.experiment_supervisor.getTime()
 
     if frontError < 0:  # far away from front wall move foward
         # Used to turn around 180
@@ -249,21 +230,24 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
             elif targetWall == 'r':
                 SetAngularVelocity(0, 0)
                 UTurns('r', Cmax)
+        elif frontError > -0.3:
+            NinetyDegreeTurns(Cmax, targetWall)
 
         # wall Follow Left
         elif targetWall == 'r':
-            flag_Change[0] = 1
-            Left_Turns[0] = 0
+            print("HEY")
             wallFollowingLeft(leftError, SaturationFunction(Utf, Cmax, Cmin), Cmax, Cmin, Kps)
 
         # Wall Follow Right
         elif targetWall == 'l':
-            flag_Change[0] = 1
-            Left_Turns[0] = 0
+            print("HUI")
             wallFollowingRight(rightError, SaturationFunction(Utf, Cmax, Cmin), Cmax, Cmin, Kps)
 
         else:
             SetAngularVelocity(SaturationFunction(Utf, Cmax, Cmin), SaturationFunction(Utf, Cmax, Cmin))
+
+            if frontError > -0.3 or leftDistance < 0.3 or rightDistance < 0.3:
+                targetFound[0] = 2
 
     else:  # passed the wall Reverse
         if current_maze_file == maze_file[0]:
@@ -313,20 +297,20 @@ robot.move_to_start()
 # Used for turning
 target_orientations = [180, 90, 0, 270]  # Used to tell the robot when to stop turning.
 initial_orientation = [robot.get_compass_reading()]  # Grabs the initial reading of the orientation of the robot
+
 Target_reaches = [0]
-flag_Change = [1]  # Used to limit the time it takes to change the target orientation.
-Left_Turns = [0]
-previousWall = [None,None]
+previousWall = [None, None]
+previousTime = [0]
 
 # Used for target finding.
 targetFound = [0]
 
 while robot.experiment_supervisor.step(robot.timestep) != -1:
-
-    print(getDistanceReadings())
+    # print("Simulation Time", robot.experiment_supervisor.getTime())
+    # print(getDistanceReadings())
     print(robot.get_compass_reading())
     findTarget('l')
-    print(targetFound[0])
+    print("TARGETFOUND", targetFound[0])
     if targetFound[0] == 1:
         if MotionToGoal() == 0:
             print("END")
