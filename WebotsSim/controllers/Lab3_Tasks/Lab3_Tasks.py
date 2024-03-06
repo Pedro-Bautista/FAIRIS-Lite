@@ -142,16 +142,22 @@ def NinetyDegreeTurns(Cmax, targetWall):
             SetAngularVelocity(Cmax, 0.4 * Cmax)
             TurnDirection[0] = 1
         else:
-            SetAngularVelocity(0.4 * Cmax, Cmax)
-            TurnDirection[0] = -1
+            if TurnDirection[0] == 2:
+                SetAngularVelocity(0.1 * Cmax, -Cmax)
+            else:
+                SetAngularVelocity(0.4 * Cmax, Cmax)
+                TurnDirection[0] = -1
 
     elif targetWall == 'l':
         if currentDistances[2] <= 0.8 or TurnDirection[0] == -1:
             SetAngularVelocity(0.4 * Cmax, Cmax)
             TurnDirection[0] = -1
         else:
-            SetAngularVelocity(Cmax, 0.4 * Cmax)
-            TurnDirection[0] = 1
+            if TurnDirection[0] == -2:
+                SetAngularVelocity(-Cmax, 0.1 * Cmax)
+            else:
+                SetAngularVelocity(Cmax, 0.4 * Cmax)
+                TurnDirection[0] = 1
 
 
 def UTurns(targetWall, Cmax):
@@ -213,7 +219,7 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
         if Target_reaches[0] != 1:
             return
         else:
-            if leftDistance - previousWall[0] >= 3 or rightDistance - previousWall[1] > 3:
+            if leftDistance - previousWall[0] >= 3 or rightDistance - previousWall[1] >= 2:
                 # print("TIME", robot.experiment_supervisor.getTime() - previousTime[0])
                 if robot.experiment_supervisor.getTime() - previousTime[0] <= 0.2:
                     MotionToGoal()
@@ -222,8 +228,10 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
                     Target_reaches[0] = 0
                     targetFound[0] = 2
             else:
+                if previousWall[1] >= 2:
+                    previousWall[1] -= 2
                 previousTime[0] = robot.experiment_supervisor.getTime()
-                print(previousWall[0])
+                print(previousWall)
                 print(previousTime[0])
 
     if frontError < 0:  # far away from front wall move foward
@@ -249,12 +257,19 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
 
         else:
             print(ObjectRelativePosition)
-            if frontError >= -0.30 and ObjectRelativePosition[0]>=1.5:
-                targetFound[0]=2
+            if frontError >= -0.30 and ObjectRelativePosition[0] >= 1.5:
+                targetFound[0] = 2
             else:
-                SetAngularVelocity(SaturationFunction(Utf, Cmax, Cmin), SaturationFunction(Utf, Cmax, Cmin))
+                if robot.get_front_left_distance_reading() <= 0.5 and currentDistances[2] >= 3:
+                    targetFound[0] = 2
+                    TurnDirection[0] = -2
+                elif robot.get_front_right_distance_reading() <= 0.5 and currentDistances[2] >= 3:
+                    targetFound[0] = 2
+                    TurnDirection[0] = 2
+                else:
+                    SetAngularVelocity(SaturationFunction(Utf, Cmax, Cmin), SaturationFunction(Utf, Cmax, Cmin))
     else:  # passed the wall Reverse
-        if frontError == 0 and ObjectRelativePosition[0]<=1.2:
+        if frontError == 0 and ObjectRelativePosition[0] <= 1.2:
             SetAngularVelocity(0, 0)
             return 0
         else:
@@ -291,7 +306,7 @@ robot = MyRobot()
 maze_file = ['worlds/mazes/Labs/Lab3/Lab3_Task1.xml', 'worlds/mazes/Labs/Lab3/Lab3_Task2_1.xml',
              'worlds/mazes/Labs/Lab3/Lab3_Task2_2.xml']
 
-current_maze_file = maze_file[1]  # Will select the proper map to perform the task.
+current_maze_file = maze_file[2]  # Will select the proper map to perform the task.
 robot.load_environment(current_maze_file)
 
 # Move robot to a random staring position listed in maze file
@@ -322,9 +337,9 @@ while robot.experiment_supervisor.step(robot.timestep) != -1:
     print("TARGETFOUND", targetFound[0])
     print("TARGETREACHES", Target_reaches[0])
     print("TURNDIRECTION", TurnDirection[0])
+    print(robot.get_front_left_distance_reading())
+    print(robot.get_front_right_distance_reading())
 
     if targetFound[0] == 1:
         if MotionToGoal() == 0:
             break
-
-
