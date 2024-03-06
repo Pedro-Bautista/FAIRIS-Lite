@@ -141,11 +141,11 @@ def NinetyDegreeTurns(Cmax, targetWall):
 
     if targetWall == 'r':
         if currentDistances[2] <= 0.8 or TurnDirection[0] == 1:
-            SetAngularVelocity(Cmax, 0.4 * Cmax)
+            SetAngularVelocity(Cmax, 0.3 * Cmax)
             TurnDirection[0] = 1
         else:
             if TurnDirection[0] == 2:
-                SetAngularVelocity(0.1 * Cmax, -Cmax)
+                SetAngularVelocity(0.1*Cmax, -Cmax)
             else:
                 SetAngularVelocity(0.4 * Cmax, Cmax)
                 TurnDirection[0] = -1
@@ -238,6 +238,8 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
                 if previousWall[1] >= 2:
                     previousWall[1] -= 2
                 if rightDistance>=10 and leftDistance>=10 and currentDistances[2]>=10:
+                    if (ObjectRelativePosition[2] * (180 / math.pi)) <= robot.get_compass_reading()-180:
+                        initial_orientation[0] += 90
                     targetFound[0]=0
                 previousTime[0] = robot.experiment_supervisor.getTime()
                 print(previousWall)
@@ -345,7 +347,7 @@ while robot.experiment_supervisor.step(robot.timestep) != -1:
     # print("Simulation Time", robot.experiment_supervisor.getTime())
     # print(getDistanceReadings())
     # print(robot.get_compass_reading())
-    findTarget('l')
+    findTarget('r')
 
     print("TARGETFOUND", targetFound[0])
     print("TARGETREACHES", Target_reaches[0])
@@ -354,6 +356,7 @@ while robot.experiment_supervisor.step(robot.timestep) != -1:
     print("INITIALORIENTATION", initial_orientation[0])
     print(robot.get_front_left_distance_reading())
     print(robot.get_front_right_distance_reading())
+    print("OBJECTRELATIVEPOSITION",ObjectRelativePosition)
 
     if targetFound[0] == 1:
         if MotionToGoal() == 0:
