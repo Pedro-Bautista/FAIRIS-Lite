@@ -145,7 +145,7 @@ def NinetyDegreeTurns(Cmax, targetWall):
             TurnDirection[0] = 1
         else:
             if TurnDirection[0] == 2:
-                SetAngularVelocity(0.1*Cmax, -Cmax)
+                SetAngularVelocity(0.1 * Cmax, -Cmax)
             else:
                 SetAngularVelocity(0.4 * Cmax, Cmax)
                 TurnDirection[0] = -1
@@ -160,7 +160,6 @@ def NinetyDegreeTurns(Cmax, targetWall):
             else:
                 SetAngularVelocity(Cmax, 0.4 * Cmax)
                 TurnDirection[0] = 1
-
 
 
 def UTurns(targetWall, Cmax):
@@ -212,12 +211,10 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
     # Used for orientation calculation. Which tells the robot how far to rotate and when to stop
     tolerance = 5
 
-    print(f'Distances from Walls: {[leftDistance, currentDistances[2], rightDistance]}')
-    # print(f'PREVIOUS WALLS: {previousWall}')
-    print(f"front Error: {frontError:.3}")
+    # print(f'Distances from Walls: {[leftDistance, currentDistances[2], rightDistance]}')
+    # print(f"front Error: {frontError:.3}")
 
     if current_maze_file != maze_file[0] and targetWall != 'f':
-        print("BYE")
         NinetyDegreeTurns(Cmax, targetWall)
         if Target_reaches[0] != 1:
             return
@@ -226,7 +223,6 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
                 # print("TIME", robot.experiment_supervisor.getTime() - previousTime[0])
                 if robot.experiment_supervisor.getTime() - previousTime[0] <= 0.2:
                     SetAngularVelocity(SaturationFunction(Utf, Cmax, Cmin), SaturationFunction(Utf, Cmax, Cmin))
-                    print("SHOULD KEEP GOING STRAIGHT")
                 else:
                     if NumberOfTurns[0] == 2:
                         Target_reaches[0] = 0
@@ -237,13 +233,13 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
             else:
                 if previousWall[1] >= 2:
                     previousWall[1] -= 2
-                if rightDistance>=10 and leftDistance>=10 and currentDistances[2]>=10:
-                    if (ObjectRelativePosition[2] * (180 / math.pi)) <= robot.get_compass_reading()-180:
+                if rightDistance >= 10 and leftDistance >= 10 and currentDistances[2] >= 10:
+                    if (ObjectRelativePosition[2] * (180 / math.pi)) <= robot.get_compass_reading() - 180:
                         initial_orientation[0] += 90
-                    targetFound[0]=0
+                    targetFound[0] = 0
                 previousTime[0] = robot.experiment_supervisor.getTime()
-                print(previousWall)
-                print(previousTime[0])
+                # print(previousWall)
+                # print(previousTime[0])
 
     if frontError < 0:  # far away from front wall move foward
         # Used to turn around 180
@@ -257,20 +253,18 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
 
         # wall Follow Left
         elif targetWall == 'r':
-            print("HEY")
             TurnDirection[0] = 0
             wallFollowingLeft(leftError, SaturationFunction(Utf, Cmax, Cmin), Cmax, Cmin, Kps)
 
         # Wall Follow Right
         elif targetWall == 'l':
-            print("HUI")
             TurnDirection[0] = 0
             wallFollowingRight(rightError, SaturationFunction(Utf, Cmax, Cmin), Cmax, Cmin, Kps)
-            if rightDistance >= 10 and NumberOfTurns[0]==2:
-                targetFound[0]=0
+            if rightDistance >= 10 and NumberOfTurns[0] == 2:
+                targetFound[0] = 0
 
         else:
-            print(ObjectRelativePosition)
+            # print(ObjectRelativePosition)
             if frontError >= -0.30 and ObjectRelativePosition[0] >= 1.5:
                 targetFound[0] = 2
             else:
@@ -302,7 +296,7 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
 def SetAngularVelocity(left_velocity, right_velocity):
     robot.set_left_motors_velocity(left_velocity / robot.wheel_radius)
     robot.set_right_motors_velocity(right_velocity / robot.wheel_radius)
-    print("Velocities: ", round(left_velocity, 3), round(right_velocity, 3))
+    # print("Velocities: ", round(left_velocity, 3), round(right_velocity, 3))
 
 
 def SaturationFunction(VelocityControl, Cmax, Cmin):
@@ -332,7 +326,7 @@ initial_orientation = [robot.get_compass_reading()]  # Grabs the initial reading
 Target_reaches = [0]
 TurnDirection = [0]
 NumberOfTurns = [0]
-previousWall = [None, None,None]
+previousWall = [None, None, None]
 previousTime = [0]
 
 # Used for target finding.
@@ -349,15 +343,8 @@ while robot.experiment_supervisor.step(robot.timestep) != -1:
     # print(robot.get_compass_reading())
     findTarget('r')
 
-    print("TARGETFOUND", targetFound[0])
-    print("TARGETREACHES", Target_reaches[0])
-    print("TURNDIRECTION", TurnDirection[0])
-    print("NUMBER OF TURNS", NumberOfTurns[0])
-    print("INITIALORIENTATION", initial_orientation[0])
-    print(robot.get_front_left_distance_reading())
-    print(robot.get_front_right_distance_reading())
-    print("OBJECTRELATIVEPOSITION",ObjectRelativePosition)
-
     if targetFound[0] == 1:
         if MotionToGoal() == 0:
+            print("Goal Reached!")
+            print('Distance from Object',getDistanceReadings()[2])
             break
