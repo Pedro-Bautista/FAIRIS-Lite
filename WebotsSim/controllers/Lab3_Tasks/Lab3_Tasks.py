@@ -28,26 +28,17 @@ def getDistanceReadings():
 
 
 def findTarget(targetWall):
-    # targetFound[0]=Object not found, spin until found.
-    # targetFound=1: Target found and it centered in camera
-    # targetFound=2: Target was previously found, but was lost due to blockage. Turn and follow wall
-    # targetFound=3: After Turning Wall Follow
     objects = robot.rgb_camera.getRecognitionObjects()
     # Iterate over each object
     objectID = None
-    ObjectOrientation = []
-    ObjectPositionalImage = []
-    ObjectRelativePosition = []
 
     for obj in objects:
         # Retrieve properties of the object
         objectID = obj.getId()
-
         # [0] how far away from camera, [1] how close to center of camera, [2] how close to edge of camera
-        ObjectRelativePosition = obj.getPosition()
-
-        ObjectOrientation = obj.getOrientation()
-        ObjectPositionalImage = obj.getPositionOnImage()
+        ObjectRelativePosition[0] = obj.getPosition()[0]
+        ObjectRelativePosition[1] = obj.getPosition()[1]
+        ObjectRelativePosition[2] = obj.getPosition()[2]
 
     # Object is not initially found
     if targetFound[0] == 0:
@@ -56,7 +47,7 @@ def findTarget(targetWall):
             CenterObjectPID(ObjectRelativePosition[1], 0.1, 0.5, 0)
             if -0.01 <= ObjectRelativePosition[1] <= 0.01:
                 targetFound[0] = 1
-                MotionToGoal()
+                Target_reaches[0] = 0
             # for j, i in enumerate(ObjectRelativePosition):
             #     print("OBject Orientation at", j, i)
         else:
@@ -64,11 +55,16 @@ def findTarget(targetWall):
             CenterObjectPID(1, 0.2, 0.5, 0)
     else:
         if targetFound[0] == 1:
+            MotionToGoal()
             if objectID is None:
                 targetFound[0] = 2
         if targetFound[0] == 2:
-            #wallFollowing([0.45, 0.45, 0.45], 1, 1, targetWall)
             NinetyDegreeTurns(0.8, targetWall)
+        if targetFound[0] == 3:
+            if objectID is not None:
+                targetFound[0] = 0
+            else:
+                wallFollowing([0.4, 0.45, 0.4], 1, 1, targetWall)
 
 
 def CenterObjectPID(ObjectRelativePosition, Kps, Cmax, Cmin):
@@ -83,6 +79,7 @@ def CenterObjectPID(ObjectRelativePosition, Kps, Cmax, Cmin):
 
 
 def MotionToGoal():
+    TurnDirection[0] = 0
     return wallFollowing([0.5, 0.5, 0.5], 1, 1, 'f')
 
 
@@ -120,9 +117,9 @@ def NinetyDegreeTurns(Cmax, targetWall):
     leftDistance = round(((currentDistances[0] + currentDistances[1]) / 2), 3)
     rightDistance = round(((currentDistances[3] + currentDistances[4]) / 2), 3)
     # if target is already reached return.
-    print("TARGET", Target_reaches[0])
+    # print("TARGET", Target_reaches[0])
     if Target_reaches[0] == 1:
-        robot.stop()
+        targetFound[0] = 3
         return
 
     for target in target_orientations:
@@ -141,16 +138,20 @@ def NinetyDegreeTurns(Cmax, targetWall):
             previousWall[1] = rightDistance
 
     if targetWall == 'r':
-        if currentDistances[1] <= 0.5:
-            SetAngularVelocity(0.4 * Cmax, Cmax)
-        else:
+        if currentDistances[2] <= 0.8 or TurnDirection[0] == 1:
             SetAngularVelocity(Cmax, 0.4 * Cmax)
+            TurnDirection[0] = 1
+        else:
+            SetAngularVelocity(0.4 * Cmax, Cmax)
+            TurnDirection[0] = -1
 
     elif targetWall == 'l':
-        if currentDistances[2] <= 0.5:
-            SetAngularVelocity(Cmax, 0.4 * Cmax)
-        else:
+        if currentDistances[2] <= 0.8 or TurnDirection[0] == -1:
             SetAngularVelocity(0.4 * Cmax, Cmax)
+            TurnDirection[0] = -1
+        else:
+            SetAngularVelocity(Cmax, 0.4 * Cmax)
+            TurnDirection[0] = 1
 
 
 def UTurns(targetWall, Cmax):
@@ -181,6 +182,7 @@ def UTurns(targetWall, Cmax):
 # This function is used for PID for distance corresponding to the front wall and will tell the robot which wall to
 # follow. Also tells the robot when and how to curve when there is an opening.
 def wallFollowing(targetDistances, Kpf, Kps, targetWall):
+    # print("TARGET WALL", targetWall)
     maxVelocity = 0.9
     currentDistances = getDistanceReadings()
     Cmax = 0.9  # m/s
@@ -202,8 +204,8 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
     tolerance = 5
 
     print(f'Distances from Walls: {[leftDistance, currentDistances[2], rightDistance]}')
-    print(f'PREVIOUS WALLS: {previousWall}')
-    # print(f"front Error: {frontError:.3}")
+    # print(f'PREVIOUS WALLS: {previousWall}')
+    print(f"front Error: {frontError:.3}")
 
     if current_maze_file != maze_file[0] and targetWall != 'f':
         print("BYE")
@@ -211,15 +213,18 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
         if Target_reaches[0] != 1:
             return
         else:
-            if leftDistance - previousWall[0] >= 5 or rightDistance - previousWall[1] > 5:
-                print("TIME", robot.experiment_supervisor.getTime() - previousTime[0])
-                if robot.experiment_supervisor.getTime() - previousTime[0] <= 0.45:
+            if leftDistance - previousWall[0] >= 3 or rightDistance - previousWall[1] > 3:
+                # print("TIME", robot.experiment_supervisor.getTime() - previousTime[0])
+                if robot.experiment_supervisor.getTime() - previousTime[0] <= 0.2:
                     MotionToGoal()
+                    print("SHOULD KEEP GOING STRAIGHT")
                 else:
-                    # targetFound[0] = 0
-                    robot.stop()
+                    Target_reaches[0] = 0
+                    targetFound[0] = 2
             else:
                 previousTime[0] = robot.experiment_supervisor.getTime()
+                print(previousWall[0])
+                print(previousTime[0])
 
     if frontError < 0:  # far away from front wall move foward
         # Used to turn around 180
@@ -230,8 +235,6 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
             elif targetWall == 'r':
                 SetAngularVelocity(0, 0)
                 UTurns('r', Cmax)
-        elif frontError > -0.3:
-            NinetyDegreeTurns(Cmax, targetWall)
 
         # wall Follow Left
         elif targetWall == 'r':
@@ -241,23 +244,19 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
         # Wall Follow Right
         elif targetWall == 'l':
             print("HUI")
+            TurnDirection[0] = 0
             wallFollowingRight(rightError, SaturationFunction(Utf, Cmax, Cmin), Cmax, Cmin, Kps)
 
         else:
-            SetAngularVelocity(SaturationFunction(Utf, Cmax, Cmin), SaturationFunction(Utf, Cmax, Cmin))
-
-            if frontError > -0.3 or leftDistance < 0.3 or rightDistance < 0.3:
-                targetFound[0] = 2
-
-    else:  # passed the wall Reverse
-        if current_maze_file == maze_file[0]:
-
-            if frontError == 0:
-                SetAngularVelocity(0, 0)
-                return 0
+            print(ObjectRelativePosition)
+            if frontError >= -0.30 and ObjectRelativePosition[0]>=1.5:
+                targetFound[0]=2
             else:
-                SetAngularVelocity(-maxVelocity + (maxVelocity - SaturationFunction(Utf, Cmax, Cmin)),
-                                   -maxVelocity + (maxVelocity - SaturationFunction(Utf, Cmax, Cmin)))
+                SetAngularVelocity(SaturationFunction(Utf, Cmax, Cmin), SaturationFunction(Utf, Cmax, Cmin))
+    else:  # passed the wall Reverse
+        if frontError == 0 and ObjectRelativePosition[0]<=1.2:
+            SetAngularVelocity(0, 0)
+            return 0
         else:
             if targetWall == 'l':
                 SetAngularVelocity(0, 0)
@@ -265,6 +264,9 @@ def wallFollowing(targetDistances, Kpf, Kps, targetWall):
             elif targetWall == 'r':
                 SetAngularVelocity(0, 0)
                 UTurns('r', Cmax)
+            else:
+                SetAngularVelocity(-maxVelocity + (maxVelocity - SaturationFunction(Utf, Cmax, Cmin)),
+                                   -maxVelocity + (maxVelocity - SaturationFunction(Utf, Cmax, Cmin)))
 
 
 def SetAngularVelocity(left_velocity, right_velocity):
@@ -297,20 +299,32 @@ robot.move_to_start()
 # Used for turning
 target_orientations = [180, 90, 0, 270]  # Used to tell the robot when to stop turning.
 initial_orientation = [robot.get_compass_reading()]  # Grabs the initial reading of the orientation of the robot
-
 Target_reaches = [0]
+TurnDirection = [0]
+
 previousWall = [None, None]
 previousTime = [0]
 
 # Used for target finding.
+# targetFound[0]=Object not found, spin until found.
+# targetFound=1: Target found, and it centered in camera
+# targetFound=2: Target was previously found, but was lost due to blockage. Turn and follow wall
+# targetFound=3: After Turning Wall Follow
 targetFound = [0]
+ObjectRelativePosition = [None, None, None]
 
 while robot.experiment_supervisor.step(robot.timestep) != -1:
     # print("Simulation Time", robot.experiment_supervisor.getTime())
     # print(getDistanceReadings())
-    print(robot.get_compass_reading())
+    # print(robot.get_compass_reading())
     findTarget('l')
+
     print("TARGETFOUND", targetFound[0])
+    print("TARGETREACHES", Target_reaches[0])
+    print("TURNDIRECTION", TurnDirection[0])
+
     if targetFound[0] == 1:
         if MotionToGoal() == 0:
-            print("END")
+            break
+
+
