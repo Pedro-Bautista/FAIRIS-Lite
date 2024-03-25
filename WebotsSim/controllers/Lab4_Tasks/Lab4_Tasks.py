@@ -1,5 +1,5 @@
 # Pedro Bautista U85594600
-# WebotsSim/controllers/Lab1_Task1/Lab1_Task1.py
+# WebotsSim/controllers/Lab1_Task1/Lab4_Task1.py
 # Changes Working Directory to be at the root of FAIRIS-Lite
 import os
 import math
@@ -10,6 +10,54 @@ os.chdir("../..")
 
 # Import MyRobot Class
 from WebotsSim.libraries.MyRobot import MyRobot
+
+def printMaze(cells):
+    for i in range(1, 17):
+        if i in cells:
+            print('.', end=' ')
+        else:
+            print('X', end=' ')
+        if i % 4 == 0:
+            print()
+
+
+# checks to see if all goals are found
+def is_targets_found(dictionary):
+    for key, value in dictionary.items():
+        if not value or len(value) != 4:
+            return False
+    return True
+
+
+def get_color(RGB):
+    if RGB[0] == 1 and RGB[1] == 0 and RGB[2] == 0:
+        return "Red"
+    elif RGB[0] == 0 and RGB[1] == 1 and RGB[2] == 0:
+        return "Green"
+    elif RGB[0] == 0 and RGB[1] == 0 and RGB[2] == 1:
+        return "Blue"
+    elif RGB[0] == 1 and RGB[1] == 1 and RGB[2] == 0:
+        return "Yellow"
+
+
+def get_localCoordinates(localCoordinates, GlobalCoordinates):
+    X_coordinate = []
+    Y_coordinate = []
+    for key, value in localCoordinates.items():
+        if value:
+            X_coordinate.append((GlobalCoordinates[key][0] - value[2]))
+            Y_coordinate.append((GlobalCoordinates[key][1] - value[3]))
+
+    return round(sum(X_coordinate) / len(X_coordinate), 3), round(sum(Y_coordinate) / len(Y_coordinate), 3)
+
+
+def findCurrentCell(RobotCoordinates):
+    for key, value in GlobalCellCoordinates.items():
+        if value[0][0] <= RobotCoordinates[0] <= value[0][1] and value[1][1] <= RobotCoordinates[1] <= value[1][0]:
+            return key
+
+    # not in any cell
+    return -1
 
 
 def getDistanceReadings():
@@ -27,44 +75,44 @@ def getDistanceReadings():
     return Center_Robot_Distances
 
 
-def findTarget(targetWall):
+# Will populate the dictionary with the target's distance, orientation, and local X and Y coordinates for every goal
+def findTarget(LocalTargets):
     objects = robot.rgb_camera.getRecognitionObjects()
     # Iterate over each object
     objectID = None
+    GoalColor = [0, 0, 0]
 
     for obj in objects:
         # Retrieve properties of the object
         objectID = obj.getId()
+        GoalColor = obj.getColors()
         # [0] how far away from camera, [1] how close to center of camera, [2] how close to edge of camera
-        ObjectRelativePosition[0] = obj.getPosition()[0]
-        ObjectRelativePosition[1] = obj.getPosition()[1]
-        ObjectRelativePosition[2] = obj.getPosition()[2]
+        ObjectRelativePosition[0] = (obj.getPosition()[0])
+        ObjectRelativePosition[1] = (obj.getPosition()[1])
+        ObjectRelativePosition[2] = (obj.getPosition()[2])
+    Key = get_color(GoalColor)
 
-    # Object is not initially found
-    if targetFound[0] == 0:
-        # if object is found, utilizes PID to center object in camera
-        if objectID is not None:
-            CenterObjectPID(ObjectRelativePosition[1], 0.1, 0.5, 0)
-            if -0.01 <= ObjectRelativePosition[1] <= 0.01:
-                targetFound[0] = 1
-                Target_reaches[0] = 0
-            # for j, i in enumerate(ObjectRelativePosition):
-            #     print("OBject Orientation at", j, i)
-        else:
-            # since there is no object, relative position is 1 and will keep turning.
-            CenterObjectPID(1, 0.2, 0.5, 0)
+    # if object is found, utilizes PID to center object in camera
+    if objectID is not None and not LocalTargets[Key]:
+        CenterObjectPID(ObjectRelativePosition[1], 0.1, 0.5, 0)
+        if -0.01 <= ObjectRelativePosition[1] <= 0.01:
+            if len(LocalTargets[Key]) != 4:
+                # gets distance from the robot to the object
+                LocalTargets[Key].append(ObjectRelativePosition[0] - 0.1)
+                # gets the orientation of the robot
+                LocalTargets[Key].append(robot.get_compass_reading())
+                # gets the local X coordinate of the robot
+                LocalTargets[Key].append((ObjectRelativePosition[0] - 0.15) * math.cos(
+                    math.radians(robot.get_compass_reading())))
+                # gets the local Y coordinate of the robot
+                LocalTargets[Key].append((ObjectRelativePosition[0] - 0.15) * math.sin(math.radians(
+                    robot.get_compass_reading())))
+
+        # for j, i in enumerate(ObjectRelativePosition):
+        #     print("OBject Orientation at", j, i)
     else:
-        if targetFound[0] == 1:
-            MotionToGoal()
-            if objectID is None:
-                targetFound[0] = 2
-        if targetFound[0] == 2:
-            NinetyDegreeTurns(0.8, targetWall)
-        if targetFound[0] == 3:
-            if objectID is not None:
-                targetFound[0] = 0
-            else:
-                wallFollowing([0.4, 0.45, 0.4], 1, 1, targetWall)
+        # since there is no object, relative position is 1 and will keep turning.
+        CenterObjectPID(1, 0.2, 0.5, 0)
 
 
 def CenterObjectPID(ObjectRelativePosition, Kps, Cmax, Cmin):
@@ -313,22 +361,28 @@ def SaturationFunction(VelocityControl, Cmax, Cmin):
 robot = MyRobot()
 
 # Loads the environment from the maze file
-maze_file = ['worlds/mazes/Labs/Lab4/Lab4_Task1_1.xml', 'worlds/mazes/Labs/Lab4/Lab4_Task1_2.xml',
-             'worlds/mazes/Labs/Lab4/Lab4_Task1_3.xml', 'worlds/mazes/Labs/Lab4/Lab4_Task2_1.xml',
+maze_file = ['worlds/mazes/Labs/Lab4/Lab4_Task1_1.xml', 'worlds/mazes/Labs/Lab4/Lab4_Task2_1.xml',
              'worlds/mazes/Labs/Lab4/Lab4_Task2_2.xml']
-Task2_1 = {'1': ['O', 'W', 'W', 'W'], '2': ['O', 'W', 'O', 'W'], '3': ['O', 'W', 'O', 'W'], '4': ['W', 'O', 'O', 'W'],
-           '5': ['W', 'O', 'W', 'O'], '6': ['W', 'O', 'W', 'O'], '7': ['W', 'W', 'O', 'O'], '8': ['O', 'W', 'O', 'W'],
-           '9': ['O', 'W', 'O', 'W'], '10': ['O', 'W', 'W', 'O'], '11': ['W', 'O', 'W', 'O'],
-           '12': ['O', 'O', 'W', 'W'], '13': ['O', 'O', 'O', 'W'], '14': ['W', 'O', 'O', 'W'],
-           '15': ['W', 'W', 'O', 'O'], '16': ['O', 'W', 'W', 'O']}
+GlobalCellCoordinates = {1: [[-2, -1], [2, 1]], 2: [[-1, 0], [2, 1]], 3: [[0, 1], [2, 1]], 4: [[1, 2], [2, 1]],
+                         5: [[-2, -1], [1, 0]], 6: [[-1, 0], [1, 0]], 7: [[0, 1], [1, 0]], 8: [[1, 2], [1, 0]],
+                         9: [[-2, -1], [0, -1]], 10: [[-1, 0], [0, -1]], 11: [[0, 1], [0, -1]],
+                         12: [[1, 2], [0, -1]], 13: [[-2, -1], [-1, -2]], 14: [[-1, 0], [-1, -2]],
+                         15: [[0, 1], [-1, -2]],
+                         16: [[1, 2], [-1, -2]]}
+# Dictionary of the maze file
+Task2_1 = {1: ['O', 'W', 'W', 'W'], 2: ['O', 'W', 'O', 'W'], 3: ['O', 'W', 'O', 'W'], 4: ['W', 'O', 'O', 'W'],
+           5: ['W', 'O', 'W', 'O'], 6: ['W', 'O', 'W', 'O'], 7: ['W', 'W', 'O', 'O'], 8: ['O', 'W', 'O', 'W'],
+           9: ['O', 'W', 'O', 'W'], 10: ['O', 'W', 'W', 'O'], 11: ['W', 'O', 'W', 'O'],
+           12: ['O', 'O', 'W', 'W'], 13: ['O', 'O', 'O', 'W'], 14: ['W', 'O', 'O', 'W'],
+           15: ['W', 'W', 'O', 'O'], 16: ['O', 'W', 'W', 'O']}
 
-Task2_2 = {'1': ['W', 'W', 'O', 'W'], '2': ['O', 'W', 'O', 'W'], '3': ['O', 'W', 'O', 'O'], '4': ['O', 'W', 'W', 'O'],
-           '5': ['W', 'W', 'O', 'O'], '6': ['O', 'W', 'W', 'O'], '7': ['W', 'O', 'W', 'O'], '8': ['W', 'O', 'W', 'O'],
-           '9': ['W', 'O', 'W', 'O'], '10': ['W', 'O', 'O', 'W'], '11': ['O', 'O', 'W', 'W'],
-           '12': ['W', 'O', 'W', 'O'], '13': ['W', 'O', 'O', 'W'], '14': ['O', 'W', 'O', 'W'],
-           '15': ['O', 'W', 'O', 'W'], '16': ['O', 'O', 'W', 'W']}
+Task2_2 = {1: ['W', 'W', 'O', 'W'], 2: ['O', 'W', 'O', 'W'], 3: ['O', 'W', 'O', 'O'], 4: ['O', 'W', 'W', 'O'],
+           5: ['W', 'W', 'O', 'O'], 6: ['O', 'W', 'W', 'O'], 7: ['W', 'O', 'W', 'O'], 8: ['W', 'O', 'W', 'O'],
+           9: ['W', 'O', 'W', 'O'], 10: ['W', 'O', 'O', 'W'], 11: ['O', 'O', 'W', 'W'],
+           12: ['W', 'O', 'W', 'O'], 13: ['W', 'O', 'O', 'W'], 14: ['O', 'W', 'O', 'W'],
+           15: ['O', 'W', 'O', 'W'], 16: ['O', 'O', 'W', 'W']}
 
-current_maze_file = maze_file[4]  # Will select the proper map to perform the task.
+current_maze_file = maze_file[0]  # Will select the proper map to perform the task.
 robot.load_environment(current_maze_file)
 
 # Move robot to a random staring position listed in maze file
@@ -342,6 +396,17 @@ NumberOfTurns = [0]
 previousWall = [None, None, None]
 previousTime = [0]
 
+# Cooridinates of the targets in respect to the board
+TargetLocationsGlobal = {'Yellow': [-2, 2], 'Red': [2, 2], 'Blue': [2, -2], 'Green': [-2, -2]}
+# Cooridinates of the targets in respect to the robot; ie. [0]=Distance, [1]=Orientation, [2]=X, [3]=Y
+TargetLocationsLocal = {'Yellow': [], 'Red': [], 'Blue': [], 'Green': []}
+
+RobotCurrentCoordintes = [0, 0]
+
+cellsVisited = []
+
+PrintFlag = False
+
 # Used for target finding.
 # targetFound[0]=Object not found, spin until found.
 # targetFound=1: Target found, and it centered in camera
@@ -354,10 +419,20 @@ while robot.experiment_supervisor.step(robot.timestep) != -1:
     # print("Simulation Time", robot.experiment_supervisor.getTime())
     # print(getDistanceReadings())
     # print(robot.get_compass_reading())
-    findTarget('r')
 
-    if targetFound[0] == 1:
-        if MotionToGoal() == 0:
-            print("Goal Reached!")
-            print('Distance from Object', getDistanceReadings()[2])
-            break
+    if not is_targets_found(TargetLocationsLocal):
+        findTarget(TargetLocationsLocal)
+    else:
+        # Finds the coordinates of the robot in respect to the board
+        RobotCurrentCoordintes = get_localCoordinates(TargetLocationsLocal, TargetLocationsGlobal)
+        # if robot is in a cell, print the maze and removes the cell from the maze
+        currentCell = findCurrentCell(RobotCurrentCoordintes)
+        if currentCell != -1:
+            # deletes visited cell from maze
+            GlobalCellCoordinates.pop(findCurrentCell(RobotCurrentCoordintes))
+
+            # Prints necessary information once per cell
+            print('Visited Cells:')
+            printMaze(GlobalCellCoordinates)
+            print(f'State Pose s=({RobotCurrentCoordintes[0]}, {RobotCurrentCoordintes[1]},{currentCell}'
+                  f', {robot.get_compass_reading()})')
