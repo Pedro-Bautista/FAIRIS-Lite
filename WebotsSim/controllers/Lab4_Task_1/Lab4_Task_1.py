@@ -15,16 +15,32 @@ from WebotsSim.libraries.MyRobot import MyRobot
 def getDistanceReadings():
     # sets readings when robot is in a straight orientation/ parallel to the wall
 
-    # If robot is not parallel to wall, readings come from lidar, where left and right have two separate readings
-    Front_Left = robot.get_lidar_range_image()[225]
-    Rear_Left = robot.get_lidar_range_image()[175]
-    Front_Right = robot.get_lidar_range_image()[575]
-    Rear_Right = robot.get_lidar_range_image()[625]
-    Average_Front_Distance = (robot.get_lidar_range_image()[400])
-    Center_Robot_Distances = [round(Front_Left, 3), round(Rear_Left, 3), round(Average_Front_Distance, 3),
-                              round(Front_Right, 3),
-                              round(Rear_Right, 3)]
-    return Center_Robot_Distances
+    Left_reading = robot.get_lidar_range_image()[200]
+    front_reading = robot.get_lidar_range_image()[400]
+    right_reading = robot.get_lidar_range_image()[600]
+    back_reading = robot.get_lidar_range_image()[0]
+
+    if Left_reading <= 1:
+        Left_reading = 1
+    else:
+        Left_reading = 0
+
+    if front_reading <= 1:
+        front_reading = 1
+    else:
+        front_reading = 0
+
+    if right_reading <= 1:
+        right_reading = 1
+    else:
+        right_reading = 0
+
+    if back_reading <= 1:
+        back_reading = 1
+    else:
+        back_reading = 0
+
+    return [Left_reading, front_reading, right_reading, back_reading]
 
 
 def SetAngularVelocity(left_velocity, right_velocity):
@@ -80,6 +96,7 @@ def findTarget(LocalTargets):
                 LocalTargets[Key].append(ObjectRelativePosition[0] - 0.1)
                 # gets the orientation of the robot
                 LocalTargets[Key].append(robot.get_compass_reading())
+
                 # gets the local X coordinate of the robot
                 LocalTargets[Key].append((ObjectRelativePosition[0] - 0.15) * math.cos(
                     math.radians(robot.get_compass_reading())))
@@ -108,6 +125,66 @@ def printMaze(cells):
             print('.', end=' ')
         else:
             print('X', end=' ')
+        if i % 4 == 0:
+            print()
+
+
+def StateProbability():
+    CurrentReadings = getDistanceReadings()
+    # [][1]= S=1, [][0]= S=0, [0][] = Z=0, [1][] = Z=1
+    SensorModel = [[0.7, 0.9], [0.3, 0.1]]
+    currentOrientation = robot.get_compass_reading()
+    cellProbabilities = []
+    Norm = 0
+    # [0] = West, [1] = North, [2] = East, [3] = South
+    # [0] = Left, [1] = Front, [2] = Right, [3] = Back
+    ReadingAdjusted = CurrentReadings
+
+    # robot facing east
+    if 0 <= currentOrientation <= 3 or 357 <= currentOrientation <= 360:
+        # West == back sensor
+        ReadingAdjusted[0] = CurrentReadings[3]
+        # North == left sensor
+        ReadingAdjusted[1] = CurrentReadings[0]
+        # East == front sensor
+        ReadingAdjusted[2] = CurrentReadings[1]
+        # South == right sensor
+        ReadingAdjusted[3] = CurrentReadings[2]
+
+        print("looking east")
+    elif 87 <= currentOrientation <= 93:
+        # West==left sensor, North==front sensor, East==right sensor, South==back sensor
+        print("looking north")
+    elif 177 <= currentOrientation <= 183:
+        # West==front sensor, North==right sensor, East==back sensor, South==left sensor
+        ReadingAdjusted[0] = CurrentReadings[1]
+        ReadingAdjusted[1] = CurrentReadings[2]
+        ReadingAdjusted[2] = CurrentReadings[3]
+        ReadingAdjusted[3] = CurrentReadings[0]
+        print("looking west")
+    elif 267 <= currentOrientation <= 273:
+        # West==right sensor, North==back sensor, East==left sensor, South==front sensor
+        ReadingAdjusted[0] = CurrentReadings[2]
+        ReadingAdjusted[1] = CurrentReadings[3]
+        ReadingAdjusted[2] = CurrentReadings[0]
+        ReadingAdjusted[3] = CurrentReadings[1]
+        print("looking south")
+
+    # value = S
+    for key, value in WorldConfiguration.items():
+        ReadingProb = 1
+        # reading = Z
+        for index, reading in enumerate(ReadingAdjusted):
+            ReadingProb *= SensorModel[int(reading)][int(value[index])]
+        cellProbabilities.append(ReadingProb)
+
+    norm = 1 / sum(cellProbabilities)
+
+    for index, cell in enumerate(cellProbabilities):
+        cellProbabilities[index] = cell * norm
+
+    for i in range(1, 17):
+        print(round(cellProbabilities[i - 1], 3), end=' ')
         if i % 4 == 0:
             print()
 
@@ -160,34 +237,34 @@ def findCurrentCell(RobotCoordinates):
 
 def gotoCornerCell(currentPos, neighbor):
     CornerCells = [1, 4, 13, 16]
-    TargetCorner=0
+    TargetCorner = 0
     if currentPos in CornerCells:
-        print('In Corner')
-        return
+        print('Corner Reached')
+        return True
     else:
         for cell in neighbor:
             if cell in CornerCells and cell != -1:
-                print('cell',cell)
+                # print('cell',cell)
                 move_to_Neighbor(currentPos, cell)
-                return
+                return False
 
         for cell in neighbor:
-            if (currentPos-5) in CornerCells and cell != -1 and (currentPos-1 == cell or currentPos-4 == cell):
-                print('currentPOS-5',currentPos-5,cell)
+            if (currentPos - 5) in CornerCells and cell != -1 and (currentPos - 1 == cell or currentPos - 4 == cell):
+                # print('currentPOS-5',currentPos-5,cell)
                 move_to_Neighbor(currentPos, cell)
-                return
-            elif (currentPos-3) in CornerCells and cell != -1 and (currentPos+1 == cell or currentPos-4 == cell):
-                print('currentPOS-2',currentPos-3,cell)
+                return False
+            elif (currentPos - 3) in CornerCells and cell != -1 and (currentPos + 1 == cell or currentPos - 4 == cell):
+                # print('currentPOS-2',currentPos-3,cell)
                 move_to_Neighbor(currentPos, cell)
-                return
-            elif (currentPos+5) in CornerCells and cell != -1 and (currentPos+1 == cell or currentPos+4 == cell):
-                print('currentPOS+5',currentPos+5,cell)
+                return False
+            elif (currentPos + 5) in CornerCells and cell != -1 and (currentPos + 1 == cell or currentPos + 4 == cell):
+                # print('currentPOS+5',currentPos+5,cell)
                 move_to_Neighbor(currentPos, cell)
-                return
-            elif (currentPos+3) in CornerCells and cell != -1 and (currentPos-1 == cell or currentPos+4 == cell):
-                print('CurrentPOS+3',currentPos+3,cell)
+                return False
+            elif (currentPos + 3) in CornerCells and cell != -1 and (currentPos - 1 == cell or currentPos + 4 == cell):
+                # print('CurrentPOS+3',currentPos+3,cell)
                 move_to_Neighbor(currentPos, cell)
-                return
+                return False
 
 
 def MoveByAmountPID(DistanceTraveled, TargetDistance, Kps, Cmax, Cmin):
@@ -228,6 +305,7 @@ def TurnToOrientation(target, Kps, Cmax, Cmin):
 
     if abs(OrientationError) <= 3:
         robot.stop()
+        return 1
 
 
 def move_to_Neighbor(currentState, targetCell):
@@ -235,13 +313,13 @@ def move_to_Neighbor(currentState, targetCell):
     Distance_Traveled = (sum(robot.get_encoder_readings()) * robot.wheel_radius / 4) - CurrentEncoderReading[0]
 
     if currentState + 1 == targetCell and targetCell in currentCellWithNeighbors[1]:
-        print(robot.get_compass_reading())
+        # print(robot.get_compass_reading())
         if 0 <= robot.get_compass_reading() <= 3 or 357 <= robot.get_compass_reading() <= 360:
             X_Moved = MoveByAmountPID(Distance_Traveled, 1, 1, 1, 0)
             if X_Moved != 0:
-                RobotCurrentCoordintes[0] += X_Moved
-                currentCellWithNeighbors[0] = (findCurrentCell(RobotCurrentCoordintes)[0])
-                currentCellWithNeighbors[1] = (findCurrentCell(RobotCurrentCoordintes)[1])
+                RobotCurrentCoordinates[0] += X_Moved
+                currentCellWithNeighbors[0] = (findCurrentCell(RobotCurrentCoordinates)[0])
+                currentCellWithNeighbors[1] = (findCurrentCell(RobotCurrentCoordinates)[1])
 
         else:
             TurnToOrientation(0, 1, 0.5, 0)
@@ -249,13 +327,13 @@ def move_to_Neighbor(currentState, targetCell):
     elif currentState - 1 == targetCell and targetCell in currentCellWithNeighbors[1]:
         if 177 <= robot.get_compass_reading() <= 183:
             X_Moved = MoveByAmountPID(Distance_Traveled, 1, 1, 1, 0)
-            #print(X_Moved)
-            #print('Original X', RobotCurrentCoordintes[0])
+            # print(X_Moved)
+            # print('Original X', RobotCurrentCoordintes[0])
             if X_Moved != 0:
-                RobotCurrentCoordintes[0] -= X_Moved
-                #print('New X', RobotCurrentCoordintes[0])
-                currentCellWithNeighbors[0] = (findCurrentCell(RobotCurrentCoordintes)[0])
-                currentCellWithNeighbors[1] = (findCurrentCell(RobotCurrentCoordintes)[1])
+                RobotCurrentCoordinates[0] -= X_Moved
+                # print('New X', RobotCurrentCoordintes[0])
+                currentCellWithNeighbors[0] = (findCurrentCell(RobotCurrentCoordinates)[0])
+                currentCellWithNeighbors[1] = (findCurrentCell(RobotCurrentCoordinates)[1])
         else:
             TurnToOrientation(180, 1, 0.5, 0)
 
@@ -263,9 +341,9 @@ def move_to_Neighbor(currentState, targetCell):
         if 267 <= robot.get_compass_reading() <= 273:
             Y_Moved = MoveByAmountPID(Distance_Traveled, 1, 1, 1, 0)
             if Y_Moved != 0:
-                RobotCurrentCoordintes[1] -= Y_Moved
-                currentCellWithNeighbors[0] = (findCurrentCell(RobotCurrentCoordintes)[0])
-                currentCellWithNeighbors[1] = (findCurrentCell(RobotCurrentCoordintes)[1])
+                RobotCurrentCoordinates[1] -= Y_Moved
+                currentCellWithNeighbors[0] = (findCurrentCell(RobotCurrentCoordinates)[0])
+                currentCellWithNeighbors[1] = (findCurrentCell(RobotCurrentCoordinates)[1])
         else:
             TurnToOrientation(270, 1, 0.5, 0)
 
@@ -273,11 +351,27 @@ def move_to_Neighbor(currentState, targetCell):
         if 87 <= robot.get_compass_reading() <= 93:
             Y_Moved = MoveByAmountPID(Distance_Traveled, 1, 1, 1, 0)
             if Y_Moved != 0:
-                RobotCurrentCoordintes[1] += Y_Moved
-                currentCellWithNeighbors[0] = (findCurrentCell(RobotCurrentCoordintes)[0])
-                currentCellWithNeighbors[1] = (findCurrentCell(RobotCurrentCoordintes)[1])
+                RobotCurrentCoordinates[1] += Y_Moved
+                currentCellWithNeighbors[0] = (findCurrentCell(RobotCurrentCoordinates)[0])
+                currentCellWithNeighbors[1] = (findCurrentCell(RobotCurrentCoordinates)[1])
         else:
             TurnToOrientation(90, 1, 0.5, 0)
+
+
+def ReachAllCells(currentState, SurroundingCells):
+    for index, cell in enumerate(SurroundingCells):
+        # print(index, cell, NeighborFollowing[0])
+        if cell != -1 and index == NeighborFollowing[0]:
+            move_to_Neighbor(currentState, cell)
+            return False
+    NeighborFollowing[0] += 1
+    if NeighborFollowing[0] > 3:
+        NeighborFollowing[0] = 0
+
+    if not GlobalCellCoordinates:
+        print('All Cells Visited')
+        robot.stop()
+        return True
 
 
 # Create the robot instance.
@@ -293,18 +387,28 @@ GlobalCellCoordinates = {1: [[-2, -1], [2, 1]], 2: [[-1, 0], [2, 1]], 3: [[0, 1]
                          15: [[0, 1], [-1, -2]],
                          16: [[1, 2], [-1, -2]]}
 
+WorldConfiguration = {1: ['1', '1', '0', '0'], 2: ['0', '1', '0', '0'], 3: ['0', '1', '0', '0'],
+                      4: ['0', '1', '1', '0'],
+                      5: ['1', '0', '0', '0'], 6: ['0', '0', '0', '0'], 7: ['0', '0', '0', '0'],
+                      8: ['0', '0', '0', '1'],
+                      9: ['1', '0', '0', '0'], 10: ['0', '0', '0', '0'], 11: ['0', '0', '0', '0'],
+                      12: ['0', '0', '0', '1'], 13: ['1', '0', '0', '1'], 14: ['0', '0', '0', '1'],
+                      15: ['0', '0', '0', '1'], 16: ['0', '0', '1', '1']}
+
 current_maze_file = maze_file[0]  # Will select the proper map to perform the task.
 robot.load_environment(current_maze_file)
 
 # Move robot to a random staring position listed in maze file
 robot.move_to_start()
 
-# Cooridinates of the targets in respect to the board
+# Coordinates of the targets in respect to the board
 TargetLocationsGlobal = {'Yellow': [-2, 2], 'Red': [2, 2], 'Blue': [2, -2], 'Green': [-2, -2]}
-# Cooridinates of the targets in respect to the robot; ie. [0]=Distance, [1]=Orientation, [2]=X, [3]=Y
+
+# Coordinates of the targets in respect to the robot; ie. [0]=Distance, [1]=Orientation, [2]=X, [3]=Y
 TargetLocationsLocal = {'Yellow': [], 'Red': [], 'Blue': [], 'Green': []}
 
-RobotCurrentCoordintes = [0, 0]
+majorOrientations = [0, 90, 180, 270, 360]
+RobotCurrentCoordinates = [0, 0]
 currentCellWithNeighbors = []
 
 CurrentEncoderReading = [0]
@@ -312,7 +416,13 @@ CurrentEncoderReading = [0]
 # [0] = Distance, [1] = Center, [2] = Edge
 ObjectRelativePosition = [-1, -1, -1]
 
-InitialCordinates = False
+CurrentWallReadings = [0, 0, 0]
+
+InitialCoordinate = False
+
+CornerReached = False
+
+NeighborFollowing = [0]
 
 while robot.experiment_supervisor.step(robot.timestep) != -1:
     # print("Simulation Time", robot.experiment_supervisor.getTime())
@@ -324,14 +434,14 @@ while robot.experiment_supervisor.step(robot.timestep) != -1:
 
     else:
         # Finds the coordinates of the robot in respect to the board
-        if not InitialCordinates:
-            RobotCurrentCoordintes = list(get_localCoordinates(TargetLocationsLocal, TargetLocationsGlobal))
-            InitialCordinates = True
+        if not InitialCoordinate:
+            RobotCurrentCoordinates = list(get_localCoordinates(TargetLocationsLocal, TargetLocationsGlobal))
+            InitialCoordinate = True
 
         # if robot is in a cell, print the maze and removes the cell from the maze
         if len(currentCellWithNeighbors) == 0:
-            currentCellWithNeighbors.append(findCurrentCell(RobotCurrentCoordintes)[0])
-            currentCellWithNeighbors.append(findCurrentCell(RobotCurrentCoordintes)[1])
+            currentCellWithNeighbors.append(findCurrentCell(RobotCurrentCoordinates)[0])
+            currentCellWithNeighbors.append(findCurrentCell(RobotCurrentCoordinates)[1])
 
         # deletes visited cell from maze and prints the maze once per cell
         if currentCellWithNeighbors[0] in GlobalCellCoordinates:
@@ -340,13 +450,18 @@ while robot.experiment_supervisor.step(robot.timestep) != -1:
             print('Visited Cells:')
             printMaze(GlobalCellCoordinates)
             print(
-                f'State Pose s=({RobotCurrentCoordintes[0]}, {RobotCurrentCoordintes[1]},{currentCellWithNeighbors[0]}'
+                f'State Pose s=({round(RobotCurrentCoordinates[0],3)}, {round(RobotCurrentCoordinates[1],3)},{currentCellWithNeighbors[0]}'
                 f', {robot.get_compass_reading()})')
 
             print('Neighbors:', currentCellWithNeighbors[1])
             CurrentEncoderReading[0] = sum(robot.get_encoder_readings()) * robot.wheel_radius / 4
             print('------------------------------------------')
-        #print(robot.get_compass_reading())
-        #CHECK GO TO THE RIGHT
-        gotoCornerCell(currentCellWithNeighbors[0], currentCellWithNeighbors[1])
-        #move_to_Neighbor(currentCellWithNeighbors[0], currentCellWithNeighbors[1][0])
+            StateProbability()
+        # print(robot.get_compass_reading())
+        # CHECK GO TO THE RIGHT
+
+        if not CornerReached:
+            CornerReached = gotoCornerCell(currentCellWithNeighbors[0], currentCellWithNeighbors[1])
+        else:
+            if ReachAllCells(currentCellWithNeighbors[0], currentCellWithNeighbors[1]):
+                break
