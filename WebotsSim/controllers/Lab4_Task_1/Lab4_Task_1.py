@@ -324,7 +324,7 @@ def TurnToOrientation(target, Kps, Cmax, C_min):
         SetAngularVelocity(-SaturationFunction(Control_Signal, Cmax, C_min),
                            SaturationFunction(Control_Signal, Cmax, C_min))
 
-    if abs(OrientationError) <= 3:
+    if abs(OrientationError) == 0:
         robot.stop()
         return 1
 
@@ -336,28 +336,28 @@ def move_to_Neighbor(currentState, targetCell):
 
     if currentState + 1 == targetCell and targetCell in currentCellWithNeighbors[1]:
         # print(robot.get_compass_reading())
-        if 0 <= robot.get_compass_reading() <= 3 or 357 <= robot.get_compass_reading() <= 360:
+        if 0 <= robot.get_compass_reading() < 1 or 359 < robot.get_compass_reading() <= 360:
             DistanceReturned = MoveByAmountPID(Distance_Traveled, 1, 1, 1, 0)
         else:
-            TurnToOrientation(0, 1, 0.5, 0)
+            TurnToOrientation(0, 0.01, 0.5, 0)
 
     elif currentState - 1 == targetCell and targetCell in currentCellWithNeighbors[1]:
-        if 177 <= robot.get_compass_reading() <= 183:
+        if 179 < robot.get_compass_reading() < 181:
             DistanceReturned = MoveByAmountPID(Distance_Traveled, 1, 1, 1, 0)
         else:
-            TurnToOrientation(180, 1, 0.5, 0)
+            TurnToOrientation(180, 0.01, 0.5, 0)
 
     elif currentState + 4 == targetCell and targetCell in currentCellWithNeighbors[1]:
-        if 267 <= robot.get_compass_reading() <= 273:
+        if 269 < robot.get_compass_reading() < 271:
             DistanceReturned = MoveByAmountPID(Distance_Traveled, 1, 1, 1, 0)
         else:
-            TurnToOrientation(270, 1, 0.5, 0)
+            TurnToOrientation(270, 0.01, 0.5, 0)
 
     elif currentState - 4 == targetCell and targetCell in currentCellWithNeighbors[1]:
-        if 87 <= robot.get_compass_reading() <= 93:
+        if 89 < robot.get_compass_reading() < 91:
             DistanceReturned = MoveByAmountPID(Distance_Traveled, 1, 1, 1, 0)
         else:
-            TurnToOrientation(90, 1, 0.5, 0)
+            TurnToOrientation(90, 0.01, 0.5, 0)
 
     if DistanceReturned != 0:
         RobotCurrentCoordinates[0] += (DistanceReturned * math.cos(math.radians(robot.get_compass_reading())))
