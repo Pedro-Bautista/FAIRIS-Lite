@@ -237,7 +237,6 @@ def findCurrentCell(RobotCoordinates):
     for index, world in enumerate(WorldConfiguration):
         if index == currentMap[0] - 1:
             currentWorld = world
-    print(currentWorld)
     for Map, dictionary in enumerate(WorldConfiguration):
         if Map == currentMap[0] - 1:
             for key, value in GlobalCellCoordinates.items():
@@ -385,12 +384,76 @@ def move_to_Neighbor(currentState, targetCell):
         VisitedCellOrder.append(currentCellWithNeighbors[0])
 
 
+def backtracking(CurrentState, targetCell):
+    surroundingCells = [-1, -1, -1, -1]
+    Distance_Traveled = ((sum(robot.get_encoder_readings()) * robot.wheel_radius) / 4) - CurrentEncoderReading[0]
+    DistanceReturned = 0
+    currentWorld = {}
+    for index, world in enumerate(WorldConfiguration):
+        if index == currentMap[0] - 1:
+            currentWorld = world
+
+    if CurrentState + 1 == targetCell:
+        # print(robot.get_compass_reading())
+        if 0 <= robot.get_compass_reading() < 1 or 359 < robot.get_compass_reading() <= 360:
+            DistanceReturned = MoveByAmountPID(Distance_Traveled, 1, 1, 1, 0)
+        else:
+            TurnToOrientation(0, 0.01, 0.5, 0)
+
+    elif CurrentState - 1 == targetCell:
+        if 179 < robot.get_compass_reading() < 181:
+            DistanceReturned = MoveByAmountPID(Distance_Traveled, 1, 1, 1, 0)
+        else:
+            TurnToOrientation(180, 0.01, 0.5, 0)
+
+    elif CurrentState + 4 == targetCell:
+        if 269 < robot.get_compass_reading() < 271:
+            DistanceReturned = MoveByAmountPID(Distance_Traveled, 1, 1, 1, 0)
+        else:
+            TurnToOrientation(270, 0.01, 0.5, 0)
+
+    elif CurrentState - 4 == targetCell:
+        if 89 < robot.get_compass_reading() < 91:
+            DistanceReturned = MoveByAmountPID(Distance_Traveled, 1, 1, 1, 0)
+        else:
+            TurnToOrientation(90, 0.01, 0.5, 0)
+    if CurrentState == targetCell:
+        if VisitedCellOrder:
+            VisitedCellOrder.pop()
+            
+    if DistanceReturned != 0:
+        RobotCurrentCoordinates[0] += (DistanceReturned * math.cos(math.radians(robot.get_compass_reading())))
+        RobotCurrentCoordinates[1] += (DistanceReturned * math.sin(math.radians(robot.get_compass_reading())))
+        
+        # Finds surrounding cells and checks if they are in the dict meaning not visited
+        if (VisitedCellOrder[-1] - 1) in GlobalCellCoordinates and currentWorld[VisitedCellOrder[-1]][0] != 1:
+            surroundingCells[0] = VisitedCellOrder[-1] - 1
+
+        if ((VisitedCellOrder[-1] - 4) in GlobalCellCoordinates) and currentWorld[VisitedCellOrder[-1]][1] != 1:
+            surroundingCells[1] = VisitedCellOrder[1] - 4
+        if ((VisitedCellOrder[-1] + 1) in GlobalCellCoordinates) and currentWorld[VisitedCellOrder[-1]][2] != 1:
+            surroundingCells[2] = VisitedCellOrder[-1] + 1
+        if ((VisitedCellOrder[-1] + 4) in GlobalCellCoordinates) and currentWorld[VisitedCellOrder[-1]][3] != 1:
+            surroundingCells[3] = VisitedCellOrder[-1] + 4
+
+        currentCellWithNeighbors[0] = VisitedCellOrder[-1]
+        currentCellWithNeighbors[1] = surroundingCells
+        # print('Current Cell:', currentCellWithNeighbors[0], 'Neighbors:', currentCellWithNeighbors[1])
+        # print(RobotCurrentCoordinates)
+        CurrentEncoderReading[0] = sum(robot.get_encoder_readings()) * robot.wheel_radius / 4
+        outputPrinting()
+
+
 def ReachAllCells(currentState, SurroundingCells):
+    count = 0
     for index, cell in enumerate(SurroundingCells):
         # print(index, cell, NeighborFollowing[0])
         if cell != -1 and index == NeighborFollowing[0]:
             move_to_Neighbor(currentState, cell)
             return False
+        elif cell == -1:
+            count += 1
+
     NeighborFollowing[0] += 1
     if NeighborFollowing[0] > 3:
         NeighborFollowing[0] = 0
@@ -399,6 +462,11 @@ def ReachAllCells(currentState, SurroundingCells):
         print('All Cells Visited')
         robot.stop()
         return True
+
+    if count == 4:
+        if VisitedCellOrder:
+            backtracking(currentState, VisitedCellOrder[-1])
+        return False
 
 
 # Create the robot instance.
@@ -427,7 +495,7 @@ Task2_2 = {1: [1, 1, 0, 1], 2: [0, 1, 0, 1], 3: [0, 1, 0, 0], 4: [0, 1, 1, 0],
 
 WorldConfiguration = [Task2_1, Task2_2]
 
-currentMap = [1]
+currentMap = [2]
 current_maze_file = maze_file[currentMap[0]]  # Will select the proper map to perform the task.
 robot.load_environment(current_maze_file)
 
@@ -501,7 +569,6 @@ while robot.experiment_supervisor.step(robot.timestep) != -1:
         #     f' {round(RobotCurrentCoordinates[1], 3)},{currentCellWithNeighbors[0]}'
         #     f', {robot.get_compass_reading()})')
         #
-        print('Neighbors:', currentCellWithNeighbors[1])
         CurrentEncoderReading[0] = sum(robot.get_encoder_readings()) * robot.wheel_radius / 4
         # print('State Probability:')
         # StateProbability()
