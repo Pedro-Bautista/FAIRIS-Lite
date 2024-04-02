@@ -1,5 +1,5 @@
 # Pedro Bautista U85594600
-# WebotsSim/controllers/Lab1_Task1/Lab4_Task1.py
+# WebotsSim/controllers/Lab1_Task1/Lab4_Task2.py
 # Changes Working Directory to be at the root of FAIRIS-Lite
 import math
 import os
@@ -8,78 +8,6 @@ import os
 from WebotsSim.libraries.MyRobot import MyRobot
 
 os.chdir("../..")
-
-# Functions not Used because of the lack of goal recognition
-'''
-def get_color(RGB):
-    if RGB[0] == 1 and RGB[1] == 0 and RGB[2] == 0:
-        return "Red"
-    elif RGB[0] == 0 and RGB[1] == 1 and RGB[2] == 0:
-        return "Green"
-    elif RGB[0] == 0 and RGB[1] == 0 and RGB[2] == 1:
-        return "Blue"
-    elif RGB[0] == 1 and RGB[1] == 1 and RGB[2] == 0:
-        return "Yellow"
-
-# Will populate the dictionary with the target's distance, orientation, and local X and Y coordinates for every goal
-def findTarget(LocalTargets):
-    objects = robot.rgb_camera.getRecognitionObjects()
-    # Iterate over each object
-    objectID = None
-    GoalColor = [0, 0, 0]
-
-    for obj in objects:
-        # Retrieve properties of the object
-        objectID = obj.getId()
-        GoalColor = obj.getColors()
-        # [0] how far away from camera, [1] how close to center of camera, [2] how close to edge of camera
-        ObjectRelativePosition[0] = (obj.getPosition()[0])
-        ObjectRelativePosition[1] = (obj.getPosition()[1])
-        ObjectRelativePosition[2] = (obj.getPosition()[2])
-    Key = get_color(GoalColor)
-
-    # if object is found, utilizes PID to center object in camera
-    if objectID is not None and not LocalTargets[Key]:
-        CenterObjectPID(ObjectRelativePosition[1], 0.1, 0.5, 0)
-        if -0.01 <= ObjectRelativePosition[1] <= 0.01:
-
-            if len(LocalTargets[Key]) != 4:
-                # gets distance from the robot to the object
-                LocalTargets[Key].append(ObjectRelativePosition[0] - 0.1)
-                # gets the orientation of the robot
-                LocalTargets[Key].append(robot.get_compass_reading())
-
-                # gets the local X coordinate of the robot
-                LocalTargets[Key].append((ObjectRelativePosition[0] - 0.15) * math.cos(
-                    math.radians(robot.get_compass_reading())))
-                # gets the local Y coordinate of the robot
-                LocalTargets[Key].append((ObjectRelativePosition[0] - 0.15) * math.sin(math.radians(
-                    robot.get_compass_reading())))
-    else:
-        # since there is no object, relative position is 1 and will keep turning.
-        CenterObjectPID(1, 0.2, 0.5, 0)
-        
-def CenterObjectPID(RelativePosition, Kps, Cmax, C_min):
-    CenterTarget = 0
-    ObjectCenterError = CenterTarget - RelativePosition
-    Control_signal = abs(ObjectCenterError) * Kps
-
-    if ObjectCenterError < 0:
-        SetAngularVelocity(-SaturationFunction(Control_signal, Cmax, C_min),
-                           SaturationFunction(Control_signal, Cmax, C_min))
-    else:
-        SetAngularVelocity(SaturationFunction(Control_signal, Cmax, C_min),
-                           -SaturationFunction(Control_signal, Cmax, C_min))
-                           
-
-# checks to see if all goals are found
-def is_targets_found(dictionary):
-    for key, value in dictionary.items():
-        if not value or len(value) != 4:
-            return False
-    return True
-    
-'''
 
 
 def getDistanceReadings():
@@ -218,19 +146,6 @@ def StateProbability():
     print('  ' + '_' * 35)
 
 
-'''
-def get_localCoordinates(localCoordinates, GlobalCoordinates):
-    X_coordinate = []
-    Y_coordinate = []
-    for key, value in localCoordinates.items():
-        if value:
-            X_coordinate.append((GlobalCoordinates[key][0] - value[2]))
-            Y_coordinate.append((GlobalCoordinates[key][1] - value[3]))
-
-    return round(sum(X_coordinate) / len(X_coordinate), 3), round(sum(Y_coordinate) / len(Y_coordinate), 3)
-'''
-
-
 def findCurrentCell(RobotCoordinates):
     surroundingCells = [-1, -1, -1, -1]
     currentWorld = {}
@@ -266,39 +181,6 @@ def findCurrentCell(RobotCoordinates):
                     return key, surroundingCells
             # not in any cell
     return -1, surroundingCells
-
-
-'''
-def gotoCornerCell(currentPos, neighbor):
-    CornerCells = [1, 4, 13, 16]
-    if currentPos in CornerCells:
-        # print('Corner Reached')
-        return True
-    else:
-        for cell in neighbor:
-            if cell in CornerCells and cell != -1:
-                # print('cell',cell)
-                move_to_Neighbor(currentPos, cell)
-                return False
-
-        for cell in neighbor:
-            if (currentPos - 5) in CornerCells and cell != -1 and (currentPos - 1 == cell or currentPos - 4 == cell):
-                # print('currentPOS-5',currentPos-5,cell)
-                move_to_Neighbor(currentPos, cell)
-                return False
-            elif (currentPos - 3) in CornerCells and cell != -1 and (currentPos + 1 == cell or currentPos - 4 == cell):
-                # print('currentPOS-2',currentPos-3,cell)
-                move_to_Neighbor(currentPos, cell)
-                return False
-            elif (currentPos + 5) in CornerCells and cell != -1 and (currentPos + 1 == cell or currentPos + 4 == cell):
-                # print('currentPOS+5',currentPos+5,cell)
-                move_to_Neighbor(currentPos, cell)
-                return False
-            elif (currentPos + 3) in CornerCells and cell != -1 and (currentPos - 1 == cell or currentPos + 4 == cell):
-                # print('CurrentPOS+3',currentPos+3,cell)
-                move_to_Neighbor(currentPos, cell)
-                return False
-'''
 
 
 def MoveByAmountPID(DistanceTraveled, TargetDistance, Kps, Cmax, C_min):
@@ -420,11 +302,11 @@ def backtracking(CurrentState, targetCell):
     if CurrentState == targetCell:
         if VisitedCellOrder:
             VisitedCellOrder.pop()
-            
+
     if DistanceReturned != 0:
         RobotCurrentCoordinates[0] += (DistanceReturned * math.cos(math.radians(robot.get_compass_reading())))
         RobotCurrentCoordinates[1] += (DistanceReturned * math.sin(math.radians(robot.get_compass_reading())))
-        
+
         # Finds surrounding cells and checks if they are in the dict meaning not visited
         if (VisitedCellOrder[-1] - 1) in GlobalCellCoordinates and currentWorld[VisitedCellOrder[-1]][0] != 1:
             surroundingCells[0] = VisitedCellOrder[-1] - 1
@@ -495,20 +377,12 @@ Task2_2 = {1: [1, 1, 0, 1], 2: [0, 1, 0, 1], 3: [0, 1, 0, 0], 4: [0, 1, 1, 0],
 
 WorldConfiguration = [Task2_1, Task2_2]
 
-currentMap = [2]
+currentMap = [1]
 current_maze_file = maze_file[currentMap[0]]  # Will select the proper map to perform the task.
 robot.load_environment(current_maze_file)
 
 # Move robot to a random staring position listed in maze file
 robot.move_to_start()
-
-'''
-# Coordinates of the targets in respect to the board
-TargetLocationsGlobal = {'Yellow': [-2, 2], 'Red': [2, 2], 'Blue': [2, -2], 'Green': [-2, -2]}
-
-# Coordinates of the targets in respect to the robot; .ie. [0]=Distance, [1]=Orientation, [2]=X, [3]=Y
-TargetLocationsLocal = {'Yellow': [], 'Red': [], 'Blue': [], 'Green': []}
-'''
 majorOrientations = [0, 90, 180, 270, 360]
 RobotCurrentCoordinates = [0, 0]
 currentCellWithNeighbors = []
@@ -535,12 +409,6 @@ while robot.experiment_supervisor.step(robot.timestep) != -1:
     # print(getDistanceReadings())
     # print(robot.get_compass_reading())
 
-    '''
-    if not is_targets_found(TargetLocationsLocal):
-        findTarget(TargetLocationsLocal)
-
-    else:
-    '''
     if not InitialOrientationNorth:
         TurnToOrientation(90, 1, 0.5, 0)
         if 87 <= robot.get_compass_reading() <= 93:
@@ -576,10 +444,5 @@ while robot.experiment_supervisor.step(robot.timestep) != -1:
     # print(robot.get_compass_reading())
     # CHECK GO TO THE RIGHT
 
-    '''
-    if not CornerReached:
-        CornerReached = gotoCornerCell(currentCellWithNeighbors[0], currentCellWithNeighbors[1])
-    else:
-    '''
     if ReachAllCells(currentCellWithNeighbors[0], currentCellWithNeighbors[1]):
         break
