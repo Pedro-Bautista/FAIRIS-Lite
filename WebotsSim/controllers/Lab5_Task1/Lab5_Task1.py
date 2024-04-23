@@ -3,6 +3,7 @@
 # Changes Working Directory to be at the root of FAIRIS-Lite
 import math
 import os
+import matplotlib.pyplot as plt
 
 # Import MyRobot Class
 from WebotsSim.libraries.MyRobot import MyRobot
@@ -89,6 +90,27 @@ def printMaze(cells):
     print('  ' + '_' * 35)
 
 
+def printWallConfiguration():
+    for cell, walls in WorldConfiguration.items():
+        row = math.floor((cell - 1) / GRID_SIZE)
+        col = (cell - 1) % GRID_SIZE
+        if walls[1] == 1:
+            plt.plot([col, col + 1], [GRID_SIZE - row, GRID_SIZE - row], 'k')  # Top wall
+        if walls[2] == 1:
+            plt.plot([col + 1, col + 1], [GRID_SIZE - row, GRID_SIZE - 1 - row], 'k')  # Right wall
+        if walls[3] == 1:
+            plt.plot([col, col + 1], [GRID_SIZE - 1 - row, GRID_SIZE - 1 - row], 'k')  # Bottom wall
+        if walls[0] == 1:
+            plt.plot([col, col], [GRID_SIZE - row, GRID_SIZE - 1 - row], 'k')  # Left wall
+
+    plt.xlim(0, GRID_SIZE)
+    plt.ylim(0, GRID_SIZE)
+    plt.gca()
+    plt.gca().set_aspect('equal')
+    plt.axis('off')
+    plt.show()
+
+
 def outputPrinting():
     print('+' + '-' * 44 + '+')
     print('{:^36}'.format('Current State Position:'))
@@ -111,7 +133,7 @@ def findCurrentCell(RobotCoordinates):
     # finds column and row of the robot in respect to the board then finds the cell
     CurrentColumn = math.floor((GRID_SIZE / 2) + (RobotCoordinates[0]))
     CurrentRow = math.floor((GRID_SIZE / 2) - (RobotCoordinates[1]))
-    CurrentCell = ((CurrentRow * GRID_SIZE) + CurrentColumn)+1
+    CurrentCell = ((CurrentRow * GRID_SIZE) + CurrentColumn) + 1
     if CurrentCell not in GlobalCellCoordinates:
         return -1, surroundingCells
 
@@ -134,7 +156,7 @@ def findCurrentCell(RobotCoordinates):
                                                     GlobalCellCoordinates[CurrentCell + 4][1] == CurrentColumn):
         surroundingCells[3] = CurrentCell + 4
     # returns the current cell and the surrounding cells
-    print('Current Cell:', CurrentCell, 'Neighbors:', surroundingCells)
+    # print('Current Cell:', CurrentCell, 'Neighbors:', surroundingCells)
     return CurrentCell, surroundingCells
 
 
@@ -310,23 +332,15 @@ robot = MyRobot()
 maze_file = ['worlds/mazes/Labs/Lab4/Lab4_Task2_1.xml', 'worlds/mazes/Labs/Lab4/Lab4_Task2_2.xml',
              'worlds/mazes/MicroMouse/Maze1.xml', 'worlds/mazes/MicroMouse/Maze2.xml',
              'worlds/mazes/MicroMouse/Maze3.xml', 'worlds/mazes/MicroMouse/Maze4.xml']
-'''
-GlobalCellCoordinates = {1: [[-2, -1], [2, 1]], 2: [[-1, 0], [2, 1]], 3: [[0, 1], [2, 1]], 4: [[1, 2], [2, 1]],
-                         5: [[-2, -1], [1, 0]], 6: [[-1, 0], [1, 0]], 7: [[0, 1], [1, 0]], 8: [[1, 2], [1, 0]],
-                         9: [[-2, -1], [0, -1]], 10: [[-1, 0], [0, -1]], 11: [[0, 1], [0, -1]],
-                         12: [[1, 2], [0, -1]], 13: [[-2, -1], [-1, -2]], 14: [[-1, 0], [-1, -2]],
-                         15: [[0, 1], [-1, -2]],
-                         16: [[1, 2], [-1, -2]]}'''
 GlobalCellCoordinates = {}
 
 # Dictionary of the maze file
 WorldConfiguration = {}
-for i in range(1, (GRID_SIZE * GRID_SIZE)+1):
+for i in range(1, (GRID_SIZE * GRID_SIZE) + 1):
     row = math.floor((i - 1) / GRID_SIZE)
     col = (i - 1) % GRID_SIZE
     GlobalCellCoordinates[i] = [row, col]
-
-current_maze_file = maze_file[0]  # Will select the proper map to perform the task.
+current_maze_file = maze_file[2]  # Will select the proper map to perform the task.
 robot.load_environment(current_maze_file)
 
 # Move robot to a random staring position listed in maze file
@@ -376,21 +390,10 @@ while robot.experiment_supervisor.step(robot.timestep) != -1:
     # deletes visited cell from maze and prints the maze once per cell
     if currentCellWithNeighbors[0] in GlobalCellCoordinates:
         GlobalCellCoordinates.pop(currentCellWithNeighbors[0])
-        # # Prints necessary information once per cell
-        # print('------------------------------------------')
-        # print('Visited Cells:')
-        # printMaze(GlobalCellCoordinates)
-        # print(
-        #     f'State Pose s=({round(RobotCurrentCoordinates[0], 3)},'
-        #     f' {round(RobotCurrentCoordinates[1], 3)},{currentCellWithNeighbors[0]}'
-        #     f', {robot.get_compass_reading()})')
-        #
         CurrentEncoderReading[0] = sum(robot.get_encoder_readings()) * robot.wheel_radius / 4
-        # print('State Probability:')
-        # StateProbability()
         outputPrinting()
-    # print(robot.get_compass_reading())
-    # CHECK GO TO THE RIGHT
 
-    if ReachAllCells(currentCellWithNeighbors[0], currentCellWithNeighbors[1]):
+    if ReachAllCells(currentCellWithNeighbors[0],
+                     currentCellWithNeighbors[1]) or robot.experiment_supervisor.getTime() >= 180:
+        printWallConfiguration()
         break
