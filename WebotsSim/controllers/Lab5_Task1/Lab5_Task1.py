@@ -331,8 +331,11 @@ robot = MyRobot()
 
 # Loads the environment from the maze file
 maze_file = ['worlds/mazes/Labs/Lab5/Lab5_SmallMaze1.xml', 'worlds/mazes/Labs/Lab5/Lab5_SmallMaze2.xml',
-             'worlds/mazes/Labs/lab5/Lab5_LargeMaze.xmll', 'worlds/mazes/MicroMouse/Maze2.xml',
+             'worlds/mazes/Labs/lab5/Lab5_LargeMaze.xml', 'worlds/mazes/MicroMouse/Maze2.xml',
              'worlds/mazes/MicroMouse/Maze3.xml', 'worlds/mazes/MicroMouse/Maze4.xml']
+
+current_maze_file = maze_file[0]  # Will select the proper map to perform the task.
+
 GlobalCellCoordinates = {}
 
 # Dictionary of the maze file
@@ -341,7 +344,6 @@ for i in range(1, (GRID_SIZE * GRID_SIZE) + 1):
     row = math.floor((i - 1) / GRID_SIZE)
     col = (i - 1) % GRID_SIZE
     GlobalCellCoordinates[i] = [row, col]
-current_maze_file = maze_file[2]  # Will select the proper map to perform the task.
 robot.load_environment(current_maze_file)
 
 # Move robot to a random staring position listed in maze file
@@ -399,5 +401,5 @@ while robot.experiment_supervisor.step(robot.timestep) != -1:
         printWallConfiguration()
         break
 
-with open(f'../MapConfigurations/{current_maze_file}', 'wb') as file:
+with open(f'MapConfigurations/{(current_maze_file.split("/")[-1]).split(".")[0]}', 'wb') as file:
     rick.dump(WorldConfiguration, file)
