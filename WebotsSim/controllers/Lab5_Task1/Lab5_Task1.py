@@ -4,6 +4,7 @@
 import math
 import os
 import matplotlib.pyplot as plt
+import pickle as rick
 
 # Import MyRobot Class
 from WebotsSim.libraries.MyRobot import MyRobot
@@ -329,8 +330,8 @@ def ReachAllCells(currentState, SurroundingCells):
 robot = MyRobot()
 
 # Loads the environment from the maze file
-maze_file = ['worlds/mazes/Labs/Lab4/Lab4_Task2_1.xml', 'worlds/mazes/Labs/Lab4/Lab4_Task2_2.xml',
-             'worlds/mazes/MicroMouse/Maze1.xml', 'worlds/mazes/MicroMouse/Maze2.xml',
+maze_file = ['worlds/mazes/Labs/Lab5/Lab5_SmallMaze1.xml', 'worlds/mazes/Labs/Lab5/Lab5_SmallMaze2.xml',
+             'worlds/mazes/Labs/lab5/Lab5_LargeMaze.xmll', 'worlds/mazes/MicroMouse/Maze2.xml',
              'worlds/mazes/MicroMouse/Maze3.xml', 'worlds/mazes/MicroMouse/Maze4.xml']
 GlobalCellCoordinates = {}
 
@@ -397,3 +398,6 @@ while robot.experiment_supervisor.step(robot.timestep) != -1:
                      currentCellWithNeighbors[1]) or robot.experiment_supervisor.getTime() >= 180:
         printWallConfiguration()
         break
+
+with open(f'../MapConfigurations/{current_maze_file}', 'wb') as file:
+    rick.dump(WorldConfiguration, file)
