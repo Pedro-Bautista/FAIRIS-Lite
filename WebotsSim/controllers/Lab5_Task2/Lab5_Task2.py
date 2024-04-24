@@ -3,8 +3,10 @@
 # Changes Working Directory to be at the root of FAIRIS-Lite
 import math
 import os
+import random
+
 import matplotlib.pyplot as plt
-import pickle as rick
+import pickle as rick  # pickle rick
 
 # Import MyRobot Class
 from WebotsSim.libraries.MyRobot import MyRobot
@@ -138,8 +140,6 @@ def findCurrentCell(RobotCoordinates):
     if CurrentCell not in GlobalCellCoordinates:
         return -1, surroundingCells
 
-    # assigns wall configuration to the current cell
-    WorldConfiguration[CurrentCell] = getDistanceReadings()
     # finds the surrounding cells of the current cell
     if WorldConfiguration[CurrentCell][0] != 1 and ((CurrentCell - 1) in GlobalCellCoordinates and
                                                     GlobalCellCoordinates[CurrentCell - 1][0] == CurrentRow):
@@ -300,7 +300,18 @@ def backtracking(CurrentState, targetCell):
         CurrentEncoderReading[0] = sum(robot.get_encoder_readings()) * robot.wheel_radius / 4
         outputPrinting()
 
+def FindShortestPath():
+    pass
 
+
+def FollowShortestPath(currentState,ShortestPlannedPath):
+    if len(ShortestPlannedPath) != 0:
+        move_to_Neighbor(currentState, ShortestPlannedPath[0])
+        return False
+
+    robot.stop()
+    print("GOAL")
+    return True
 def ReachAllCells(currentState, SurroundingCells):
     count = 0
     for index, cell in enumerate(SurroundingCells):
@@ -336,10 +347,11 @@ maze_file = ['worlds/mazes/Labs/Lab5/Lab5_SmallMaze1.xml', 'worlds/mazes/Labs/La
 
 current_maze_file = maze_file[0]  # Will select the proper map to perform the task.
 
-GlobalCellCoordinates = {}
+with open(f'MapConfigurations/{(current_maze_file.split("/")[-1]).split(".")[0]}', 'rb') as file:
+    # Loaded dictionary with the maze configuration
+    WorldConfiguration = rick.load(file)
 
-# Dictionary of the maze file
-WorldConfiguration = {}
+GlobalCellCoordinates = {}
 for i in range(1, (GRID_SIZE * GRID_SIZE) + 1):
     row = math.floor((i - 1) / GRID_SIZE)
     col = (i - 1) % GRID_SIZE
@@ -369,10 +381,11 @@ NeighborFollowing = [0]
 
 VisitedCellOrder = []
 
+ShortestPath = []
+
+GoalCell = random.randint(1, GRID_SIZE)
+
 while robot.experiment_supervisor.step(robot.timestep) != -1:
-    # print("Simulation Time", robot.experiment_supervisor.getTime())
-    # print(getDistanceReadings())
-    # print(robot.get_compass_reading())
 
     if not InitialOrientationNorth:
         TurnToOrientation(90, 1, 0.5, 0)
@@ -396,10 +409,6 @@ while robot.experiment_supervisor.step(robot.timestep) != -1:
         CurrentEncoderReading[0] = sum(robot.get_encoder_readings()) * robot.wheel_radius / 4
         outputPrinting()
 
-    if ReachAllCells(currentCellWithNeighbors[0],
-                     currentCellWithNeighbors[1]) or robot.experiment_supervisor.getTime() >= 180:
+    if FollowShortestPath(currentCellWithNeighbors[0],ShortestPath) or robot.experiment_supervisor.getTime() >= 180:
         printWallConfiguration()
         break
-
-with open(f'MapConfigurations/{(current_maze_file.split("/")[-1]).split(".")[0]}', 'wb') as file:
-    rick.dump(WorldConfiguration, file)
