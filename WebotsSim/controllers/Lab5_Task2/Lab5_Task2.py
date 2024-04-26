@@ -94,6 +94,7 @@ def printMaze(cells):
 
 
 def printWallConfiguration():
+    color='w'
     for cell, walls in WorldConfiguration.items():
         row = math.floor((cell - 1) / GRID_SIZE)
         col = (cell - 1) % GRID_SIZE
@@ -105,6 +106,15 @@ def printWallConfiguration():
             plt.plot([col, col + 1], [GRID_SIZE - 1 - row, GRID_SIZE - 1 - row], 'k')  # Bottom wall
         if walls[0] == 1:
             plt.plot([col, col], [GRID_SIZE - row, GRID_SIZE - 1 - row], 'k')  # Left wall
+
+        if cell in ShortestPath:
+            if cell == ShortestPath[0]:
+                color = 'r'
+            elif cell == ShortestPath[-1]:
+                color = 'g'
+            else:
+                color = 'y'
+            plt.fill_between([col, col + 1], GRID_SIZE - row, GRID_SIZE - 1 - row, color=color, alpha=0.5)
 
     plt.xlim(0, GRID_SIZE)
     plt.ylim(0, GRID_SIZE)
@@ -242,6 +252,7 @@ def move_to_Neighbor(currentState, targetCell):
         currentCellWithNeighbors[0] = (findCurrentCell(RobotCurrentCoordinates)[0])
         currentCellWithNeighbors[1] = (findCurrentCell(RobotCurrentCoordinates)[1])
         VisitedCellOrder.append(currentCellWithNeighbors[0])
+        ShortestPath.pop()
 
 
 def backtracking(CurrentState, targetCell):
@@ -300,18 +311,50 @@ def backtracking(CurrentState, targetCell):
         CurrentEncoderReading[0] = sum(robot.get_encoder_readings()) * robot.wheel_radius / 4
         outputPrinting()
 
-def FindShortestPath():
-    pass
+
+def FindShortestPath(CurrentState, Map, Goal):
+    length = {j: float('inf') for j in range(1, len(Map))}
+    length[CurrentState] = 0
+    predecessor = {}
+    visited = set()
+    unvisited = sorted(list(AllNeighbors.keys()))
+
+    while unvisited:
+        current = min(unvisited, key=lambda x: length[x])
+        unvisited.remove(current)
+        visited.add(current)
+        if current == Goal:
+            shortestPath = []
+            while current in predecessor:
+                shortestPath.insert(0, current)
+                current = predecessor[current]
+            shortestPath.insert(0, CurrentState)
+            return shortestPath[::-1]
+        for direction, neighbor in enumerate(AllNeighbors[current]):
+            if neighbor != -1:
+                # Calculate the distance to the neighbor (assuming each step has a unit cost)
+                distance_to_neighbor = length[current] + 1
+                # Update the distance if it's shorter than the current distance
+                if distance_to_neighbor < length[neighbor]:
+                    length[neighbor] = distance_to_neighbor
+                    predecessor[neighbor] = current
+    print(length)
+    return []
 
 
-def FollowShortestPath(currentState,ShortestPlannedPath):
+def FollowShortestPath(currentState, ShortestPlannedPath):
     if len(ShortestPlannedPath) != 0:
-        move_to_Neighbor(currentState, ShortestPlannedPath[0])
+        if ShortestPlannedPath[-1] == currentState:
+            ShortestPlannedPath.pop()
+        move_to_Neighbor(currentState, ShortestPlannedPath[-1])
         return False
 
     robot.stop()
+    print("Goal was ", GoalCell)
     print("GOAL")
     return True
+
+
 def ReachAllCells(currentState, SurroundingCells):
     count = 0
     for index, cell in enumerate(SurroundingCells):
@@ -345,9 +388,10 @@ maze_file = ['worlds/mazes/Labs/Lab5/Lab5_SmallMaze1.xml', 'worlds/mazes/Labs/La
              'worlds/mazes/Labs/lab5/Lab5_LargeMaze.xml', 'worlds/mazes/MicroMouse/Maze2.xml',
              'worlds/mazes/MicroMouse/Maze3.xml', 'worlds/mazes/MicroMouse/Maze4.xml']
 
-current_maze_file = maze_file[0]  # Will select the proper map to perform the task.
+current_maze_file = maze_file[1]  # Will select the proper map to perform the task.
 
 with open(f'MapConfigurations/{(current_maze_file.split("/")[-1]).split(".")[0]}', 'rb') as file:
+    AllNeighbors = rick.load(file)
     # Loaded dictionary with the maze configuration
     WorldConfiguration = rick.load(file)
 
@@ -383,8 +427,8 @@ VisitedCellOrder = []
 
 ShortestPath = []
 
-GoalCell = random.randint(1, GRID_SIZE)
 
+GoalCell = random.randint(1, GRID_SIZE ** 2)
 while robot.experiment_supervisor.step(robot.timestep) != -1:
 
     if not InitialOrientationNorth:
@@ -403,12 +447,13 @@ while robot.experiment_supervisor.step(robot.timestep) != -1:
         currentCellWithNeighbors.append(findCurrentCell(RobotCurrentCoordinates)[1])
         VisitedCellOrder.append(currentCellWithNeighbors[0])
 
+        ShortestPath = FindShortestPath(currentCellWithNeighbors[0], AllNeighbors, GoalCell)
+        printWallConfiguration()
     # deletes visited cell from maze and prints the maze once per cell
     if currentCellWithNeighbors[0] in GlobalCellCoordinates:
         GlobalCellCoordinates.pop(currentCellWithNeighbors[0])
         CurrentEncoderReading[0] = sum(robot.get_encoder_readings()) * robot.wheel_radius / 4
         outputPrinting()
 
-    if FollowShortestPath(currentCellWithNeighbors[0],ShortestPath) or robot.experiment_supervisor.getTime() >= 180:
-        printWallConfiguration()
+    if FollowShortestPath(currentCellWithNeighbors[0], ShortestPath) or robot.experiment_supervisor.getTime() >= 180:
         break
