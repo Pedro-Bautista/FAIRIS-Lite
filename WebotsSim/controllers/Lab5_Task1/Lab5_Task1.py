@@ -131,6 +131,7 @@ def findCurrentCell(RobotCoordinates):
     # tst row=floor(cell#-1 /gridsize) col=cell#-1 % gridsize
 
     surroundingCells = [-1, -1, -1, -1]
+    GeneralSurroundingCells = [-1, -1, -1, -1]
     # finds column and row of the robot in respect to the board then finds the cell
     CurrentColumn = math.floor((GRID_SIZE / 2) + (RobotCoordinates[0]))
     CurrentRow = math.floor((GRID_SIZE / 2) - (RobotCoordinates[1]))
@@ -141,23 +142,41 @@ def findCurrentCell(RobotCoordinates):
     # assigns wall configuration to the current cell
     WorldConfiguration[CurrentCell] = getDistanceReadings()
     # finds the surrounding cells of the current cell
-    if WorldConfiguration[CurrentCell][0] != 1 and ((CurrentCell - 1) in GlobalCellCoordinates and
-                                                    GlobalCellCoordinates[CurrentCell - 1][0] == CurrentRow):
-        surroundingCells[0] = CurrentCell - 1
+    if WorldConfiguration[CurrentCell][0] != 1:
+        NeighboringRow = ((CurrentCell-1) - 1) // GRID_SIZE
+        if NeighboringRow == CurrentRow:
+            GeneralSurroundingCells[0] = CurrentCell - 1
 
-    if WorldConfiguration[CurrentCell][1] != 1 and ((CurrentCell - 4) in GlobalCellCoordinates and
-                                                    GlobalCellCoordinates[CurrentCell - 4][1] == CurrentColumn):
-        surroundingCells[1] = CurrentCell - 4
+        if (CurrentCell - 1) in GlobalCellCoordinates and GlobalCellCoordinates[CurrentCell - 1][0] == CurrentRow:
+            surroundingCells[0] = CurrentCell - 1
 
-    if WorldConfiguration[CurrentCell][2] != 1 and ((CurrentCell + 1) in GlobalCellCoordinates and
-                                                    GlobalCellCoordinates[CurrentCell + 1][0] == CurrentRow):
-        surroundingCells[2] = CurrentCell + 1
+    if WorldConfiguration[CurrentCell][1] != 1:
+        NeighboringColumn = ((CurrentCell-4) - 1) % GRID_SIZE
+        if NeighboringColumn == CurrentColumn:
+            GeneralSurroundingCells[1] = CurrentCell - 4
 
-    if WorldConfiguration[CurrentCell][3] != 1 and ((CurrentCell + 4) in GlobalCellCoordinates and
-                                                    GlobalCellCoordinates[CurrentCell + 4][1] == CurrentColumn):
-        surroundingCells[3] = CurrentCell + 4
+        if (CurrentCell - 4) in GlobalCellCoordinates and GlobalCellCoordinates[CurrentCell - 4][1] == CurrentColumn:
+            surroundingCells[1] = CurrentCell - 4
+
+    if WorldConfiguration[CurrentCell][2] != 1:
+        NeighboringRow = ((CurrentCell+1) - 1) // GRID_SIZE
+        if NeighboringRow == CurrentRow:
+            GeneralSurroundingCells[2] = CurrentCell + 1
+
+        if (CurrentCell + 1) in GlobalCellCoordinates and GlobalCellCoordinates[CurrentCell + 1][0] == CurrentRow:
+            surroundingCells[2] = CurrentCell + 1
+
+    if WorldConfiguration[CurrentCell][3] != 1:
+        NeighboringColumn = ((CurrentCell+4) - 1) % GRID_SIZE
+        if NeighboringColumn == CurrentColumn:
+            GeneralSurroundingCells[3] = CurrentCell + 4
+
+        if (CurrentCell + 4) in GlobalCellCoordinates and GlobalCellCoordinates[CurrentCell + 4][1] == CurrentColumn:
+            surroundingCells[3] = CurrentCell + 4
+
     # returns the current cell and the surrounding cells
-    # print('Current Cell:', CurrentCell, 'Neighbors:', surroundingCells)
+    if CurrentCell not in AllNeighbors:
+        AllNeighbors[CurrentCell] = GeneralSurroundingCells
     return CurrentCell, surroundingCells
 
 
@@ -337,7 +356,7 @@ maze_file = ['worlds/mazes/Labs/Lab5/Lab5_SmallMaze1.xml', 'worlds/mazes/Labs/La
 current_maze_file = maze_file[0]  # Will select the proper map to perform the task.
 
 GlobalCellCoordinates = {}
-
+AllNeighbors = {}
 # Dictionary of the maze file
 WorldConfiguration = {}
 for i in range(1, (GRID_SIZE * GRID_SIZE) + 1):
@@ -402,4 +421,4 @@ while robot.experiment_supervisor.step(robot.timestep) != -1:
         break
 
 with open(f'MapConfigurations/{(current_maze_file.split("/")[-1]).split(".")[0]}', 'wb') as file:
-    rick.dump(WorldConfiguration, file)
+    rick.dump(AllNeighbors, file)
