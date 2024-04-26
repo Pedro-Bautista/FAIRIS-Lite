@@ -141,36 +141,14 @@ def outputPrinting():
 
 
 def findCurrentCell(RobotCoordinates):
-    # Initial neighbor cells depends on wall configuration
-    # tst row=floor(cell#-1 /gridsize) col=cell#-1 % gridsize
-
-    surroundingCells = [-1, -1, -1, -1]
     # finds column and row of the robot in respect to the board then finds the cell
     CurrentColumn = math.floor((GRID_SIZE / 2) + (RobotCoordinates[0]))
     CurrentRow = math.floor((GRID_SIZE / 2) - (RobotCoordinates[1]))
     CurrentCell = ((CurrentRow * GRID_SIZE) + CurrentColumn) + 1
     if CurrentCell not in GlobalCellCoordinates:
-        return -1, surroundingCells
-
-    # finds the surrounding cells of the current cell
-    if WorldConfiguration[CurrentCell][0] != 1 and ((CurrentCell - 1) in GlobalCellCoordinates and
-                                                    GlobalCellCoordinates[CurrentCell - 1][0] == CurrentRow):
-        surroundingCells[0] = CurrentCell - 1
-
-    if WorldConfiguration[CurrentCell][1] != 1 and ((CurrentCell - 4) in GlobalCellCoordinates and
-                                                    GlobalCellCoordinates[CurrentCell - 4][1] == CurrentColumn):
-        surroundingCells[1] = CurrentCell - 4
-
-    if WorldConfiguration[CurrentCell][2] != 1 and ((CurrentCell + 1) in GlobalCellCoordinates and
-                                                    GlobalCellCoordinates[CurrentCell + 1][0] == CurrentRow):
-        surroundingCells[2] = CurrentCell + 1
-
-    if WorldConfiguration[CurrentCell][3] != 1 and ((CurrentCell + 4) in GlobalCellCoordinates and
-                                                    GlobalCellCoordinates[CurrentCell + 4][1] == CurrentColumn):
-        surroundingCells[3] = CurrentCell + 4
+        return -1
     # returns the current cell and the surrounding cells
-    # print('Current Cell:', CurrentCell, 'Neighbors:', surroundingCells)
-    return CurrentCell, surroundingCells
+    return CurrentCell
 
 
 def MoveByAmountPID(DistanceTraveled, TargetDistance, Kps, Cmax, C_min):
@@ -223,26 +201,26 @@ def move_to_Neighbor(currentState, targetCell):
     Distance_Traveled = ((sum(robot.get_encoder_readings()) * robot.wheel_radius) / 4) - CurrentEncoderReading[0]
     DistanceReturned = 0
 
-    if currentState + 1 == targetCell and targetCell in currentCellWithNeighbors[1]:
+    if currentState + 1 == targetCell and targetCell in AllNeighbors[currentState]:
         # print(robot.get_compass_reading())
         if 0 <= robot.get_compass_reading() < 1 or 359 < robot.get_compass_reading() <= 360:
             DistanceReturned = MoveByAmountPID(Distance_Traveled, 1, 1, 1, 0)
         else:
             TurnToOrientation(0, 0.01, 0.5, 0)
 
-    elif currentState - 1 == targetCell and targetCell in currentCellWithNeighbors[1]:
+    elif currentState - 1 == targetCell and targetCell in AllNeighbors[currentState]:
         if 179 < robot.get_compass_reading() < 181:
             DistanceReturned = MoveByAmountPID(Distance_Traveled, 1, 1, 1, 0)
         else:
             TurnToOrientation(180, 0.01, 0.5, 0)
 
-    elif currentState + 4 == targetCell and targetCell in currentCellWithNeighbors[1]:
+    elif currentState + 4 == targetCell and targetCell in AllNeighbors[currentState]:
         if 269 < robot.get_compass_reading() < 271:
             DistanceReturned = MoveByAmountPID(Distance_Traveled, 1, 1, 1, 0)
         else:
             TurnToOrientation(270, 0.01, 0.5, 0)
 
-    elif currentState - 4 == targetCell and targetCell in currentCellWithNeighbors[1]:
+    elif currentState - 4 == targetCell and targetCell in AllNeighbors[currentState]:
         if 89 < robot.get_compass_reading() < 91:
             DistanceReturned = MoveByAmountPID(Distance_Traveled, 1, 1, 1, 0)
         else:
@@ -251,8 +229,7 @@ def move_to_Neighbor(currentState, targetCell):
     if DistanceReturned != 0:
         RobotCurrentCoordinates[0] += (DistanceReturned * math.cos(math.radians(robot.get_compass_reading())))
         RobotCurrentCoordinates[1] += (DistanceReturned * math.sin(math.radians(robot.get_compass_reading())))
-        currentCellWithNeighbors[0] = (findCurrentCell(RobotCurrentCoordinates)[0])
-        currentCellWithNeighbors[1] = (findCurrentCell(RobotCurrentCoordinates)[1])
+        currentCellWithNeighbors[0] = (findCurrentCell(RobotCurrentCoordinates))
         VisitedCellOrder.append(currentCellWithNeighbors[0])
         ShortestPath.pop()
 
@@ -295,7 +272,6 @@ def FollowShortestPath(currentState, ShortestPlannedPath):
         return False
 
     robot.stop()
-    print("Goal was ", GoalCell)
     print("GOAL")
     return True
 
@@ -357,8 +333,7 @@ while robot.experiment_supervisor.step(robot.timestep) != -1:
 
     # if robot is in a cell, print the maze and removes the cell from the maze
     if len(currentCellWithNeighbors) == 0:
-        currentCellWithNeighbors.append(findCurrentCell(RobotCurrentCoordinates)[0])
-        currentCellWithNeighbors.append(findCurrentCell(RobotCurrentCoordinates)[1])
+        currentCellWithNeighbors.append(findCurrentCell(RobotCurrentCoordinates))
         VisitedCellOrder.append(currentCellWithNeighbors[0])
 
         ShortestPath = FindShortestPath(currentCellWithNeighbors[0], AllNeighbors, GoalCell)
