@@ -78,13 +78,13 @@ def SaturationFunction(VelocityControl, Cmax, C_min):
 
 def printMaze(cells):
     print(' ' * 2 + '_' * 35)
-    for i in range(1, 17):
+    for i in range(1, (GRID_SIZE**2)+1):
         print('  ', end='|')
         if i in cells:
             print('{:^5}'.format('o'), end=' ')
         else:
             print('{:^5}'.format('X'), end=' ')
-        if i % 4 == 0:
+        if i % GRID_SIZE == 0:
             print("|")
             if i != 16:
                 print('  |' + '_' * 8 + '|' + '_' * 8 + '|' + '_' * 8 + '|' + '_' * 6 + '|')
@@ -150,14 +150,16 @@ def findCurrentCell(RobotCoordinates):
         if (CurrentCell - 1) in GlobalCellCoordinates and GlobalCellCoordinates[CurrentCell - 1][0] == CurrentRow:
             surroundingCells[0] = CurrentCell - 1
 
+    # Checks for cell to the north
     if WorldConfiguration[CurrentCell][1] != 1:
-        NeighboringColumn = ((CurrentCell-4) - 1) % GRID_SIZE
+        NeighboringColumn = ((CurrentCell-GRID_SIZE) - 1) % GRID_SIZE
         if NeighboringColumn == CurrentColumn:
-            GeneralSurroundingCells[1] = CurrentCell - 4
+            GeneralSurroundingCells[1] = CurrentCell - GRID_SIZE
 
-        if (CurrentCell - 4) in GlobalCellCoordinates and GlobalCellCoordinates[CurrentCell - 4][1] == CurrentColumn:
-            surroundingCells[1] = CurrentCell - 4
+        if (CurrentCell - GRID_SIZE) in GlobalCellCoordinates and GlobalCellCoordinates[CurrentCell - GRID_SIZE][1] == CurrentColumn:
+            surroundingCells[1] = CurrentCell - GRID_SIZE
 
+    # Checks for cell to the east
     if WorldConfiguration[CurrentCell][2] != 1:
         NeighboringRow = ((CurrentCell+1) - 1) // GRID_SIZE
         if NeighboringRow == CurrentRow:
@@ -166,13 +168,14 @@ def findCurrentCell(RobotCoordinates):
         if (CurrentCell + 1) in GlobalCellCoordinates and GlobalCellCoordinates[CurrentCell + 1][0] == CurrentRow:
             surroundingCells[2] = CurrentCell + 1
 
+    # Checks for cell to the south
     if WorldConfiguration[CurrentCell][3] != 1:
-        NeighboringColumn = ((CurrentCell+4) - 1) % GRID_SIZE
+        NeighboringColumn = ((CurrentCell+GRID_SIZE) - 1) % GRID_SIZE
         if NeighboringColumn == CurrentColumn:
-            GeneralSurroundingCells[3] = CurrentCell + 4
+            GeneralSurroundingCells[3] = CurrentCell + GRID_SIZE
 
-        if (CurrentCell + 4) in GlobalCellCoordinates and GlobalCellCoordinates[CurrentCell + 4][1] == CurrentColumn:
-            surroundingCells[3] = CurrentCell + 4
+        if (CurrentCell + GRID_SIZE) in GlobalCellCoordinates and GlobalCellCoordinates[CurrentCell + GRID_SIZE][1] == CurrentColumn:
+            surroundingCells[3] = CurrentCell + GRID_SIZE
 
     # returns the current cell and the surrounding cells
     if CurrentCell not in AllNeighbors:
@@ -243,13 +246,13 @@ def move_to_Neighbor(currentState, targetCell):
         else:
             TurnToOrientation(180, 0.01, 0.5, 0)
 
-    elif currentState + 4 == targetCell and targetCell in currentCellWithNeighbors[1]:
+    elif currentState + GRID_SIZE == targetCell and targetCell in currentCellWithNeighbors[1]:
         if 269 < robot.get_compass_reading() < 271:
             DistanceReturned = MoveByAmountPID(Distance_Traveled, 1, 1, 1, 0)
         else:
             TurnToOrientation(270, 0.01, 0.5, 0)
 
-    elif currentState - 4 == targetCell and targetCell in currentCellWithNeighbors[1]:
+    elif currentState - GRID_SIZE == targetCell and targetCell in currentCellWithNeighbors[1]:
         if 89 < robot.get_compass_reading() < 91:
             DistanceReturned = MoveByAmountPID(Distance_Traveled, 1, 1, 1, 0)
         else:
@@ -282,13 +285,13 @@ def backtracking(CurrentState, targetCell):
         else:
             TurnToOrientation(180, 0.01, 0.5, 0)
 
-    elif CurrentState + 4 == targetCell:
+    elif CurrentState + GRID_SIZE == targetCell:
         if 269 < robot.get_compass_reading() < 271:
             DistanceReturned = MoveByAmountPID(Distance_Traveled, 1, 1, 1, 0)
         else:
             TurnToOrientation(270, 0.01, 0.5, 0)
 
-    elif CurrentState - 4 == targetCell:
+    elif CurrentState - GRID_SIZE == targetCell:
         if 89 < robot.get_compass_reading() < 91:
             DistanceReturned = MoveByAmountPID(Distance_Traveled, 1, 1, 1, 0)
         else:
@@ -305,12 +308,12 @@ def backtracking(CurrentState, targetCell):
         if (VisitedCellOrder[-1] - 1) in GlobalCellCoordinates and currentWorld[VisitedCellOrder[-1]][0] != 1:
             surroundingCells[0] = VisitedCellOrder[-1] - 1
 
-        if ((VisitedCellOrder[-1] - 4) in GlobalCellCoordinates) and currentWorld[VisitedCellOrder[-1]][1] != 1:
-            surroundingCells[1] = VisitedCellOrder[1] - 4
+        if ((VisitedCellOrder[-1] - GRID_SIZE) in GlobalCellCoordinates) and currentWorld[VisitedCellOrder[-1]][1] != 1:
+            surroundingCells[1] = VisitedCellOrder[-1] - GRID_SIZE
         if ((VisitedCellOrder[-1] + 1) in GlobalCellCoordinates) and currentWorld[VisitedCellOrder[-1]][2] != 1:
             surroundingCells[2] = VisitedCellOrder[-1] + 1
-        if ((VisitedCellOrder[-1] + 4) in GlobalCellCoordinates) and currentWorld[VisitedCellOrder[-1]][3] != 1:
-            surroundingCells[3] = VisitedCellOrder[-1] + 4
+        if ((VisitedCellOrder[-1] + GRID_SIZE) in GlobalCellCoordinates) and currentWorld[VisitedCellOrder[-1]][3] != 1:
+            surroundingCells[3] = VisitedCellOrder[-1] + GRID_SIZE
 
         currentCellWithNeighbors[0] = VisitedCellOrder[-1]
         currentCellWithNeighbors[1] = surroundingCells
@@ -415,10 +418,13 @@ while robot.experiment_supervisor.step(robot.timestep) != -1:
         CurrentEncoderReading[0] = sum(robot.get_encoder_readings()) * robot.wheel_radius / 4
         outputPrinting()
 
-    if ReachAllCells(currentCellWithNeighbors[0],
-                     currentCellWithNeighbors[1]) or robot.experiment_supervisor.getTime() >= 180:
+    if ReachAllCells(currentCellWithNeighbors[0],currentCellWithNeighbors[1]):
+        if robot.experiment_supervisor.getTime() <= 180 and GRID_SIZE == 4:
+            printWallConfiguration()
+            break
         printWallConfiguration()
         break
 
 with open(f'MapConfigurations/{(current_maze_file.split("/")[-1]).split(".")[0]}', 'wb') as file:
     rick.dump(AllNeighbors, file)
+    rick.dump(WorldConfiguration, file)
