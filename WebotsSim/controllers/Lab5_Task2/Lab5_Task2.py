@@ -12,6 +12,8 @@ import pickle as rick  # pickle rick
 from WebotsSim.libraries.MyRobot import MyRobot
 
 os.chdir("../..")
+
+# *IF MAZE IS CHANGED, CHANGE THE GRID SIZE TO MATCH THE MAZE*
 GRID_SIZE = 4
 
 
@@ -80,13 +82,13 @@ def SaturationFunction(VelocityControl, Cmax, C_min):
 
 def printMaze(cells):
     print(' ' * 2 + '_' * 35)
-    for i in range(1, 17):
+    for i in range(1, (GRID_SIZE ** 2) + 1):
         print('  ', end='|')
         if i in cells:
             print('{:^5}'.format('o'), end=' ')
         else:
             print('{:^5}'.format('X'), end=' ')
-        if i % 4 == 0:
+        if i % GRID_SIZE == 0:
             print("|")
             if i != 16:
                 print('  |' + '_' * 8 + '|' + '_' * 8 + '|' + '_' * 8 + '|' + '_' * 6 + '|')
@@ -94,7 +96,7 @@ def printMaze(cells):
 
 
 def printWallConfiguration():
-    color='w'
+    color = 'w'
     for cell, walls in WorldConfiguration.items():
         row = math.floor((cell - 1) / GRID_SIZE)
         col = (cell - 1) % GRID_SIZE
@@ -255,63 +257,6 @@ def move_to_Neighbor(currentState, targetCell):
         ShortestPath.pop()
 
 
-def backtracking(CurrentState, targetCell):
-    surroundingCells = [-1, -1, -1, -1]
-    Distance_Traveled = ((sum(robot.get_encoder_readings()) * robot.wheel_radius) / 4) - CurrentEncoderReading[0]
-    DistanceReturned = 0
-    currentWorld = WorldConfiguration
-
-    if CurrentState + 1 == targetCell:
-        # print(robot.get_compass_reading())
-        if 0 <= robot.get_compass_reading() < 1 or 359 < robot.get_compass_reading() <= 360:
-            DistanceReturned = MoveByAmountPID(Distance_Traveled, 1, 1, 1, 0)
-        else:
-            TurnToOrientation(0, 0.01, 0.5, 0)
-
-    elif CurrentState - 1 == targetCell:
-        if 179 < robot.get_compass_reading() < 181:
-            DistanceReturned = MoveByAmountPID(Distance_Traveled, 1, 1, 1, 0)
-        else:
-            TurnToOrientation(180, 0.01, 0.5, 0)
-
-    elif CurrentState + 4 == targetCell:
-        if 269 < robot.get_compass_reading() < 271:
-            DistanceReturned = MoveByAmountPID(Distance_Traveled, 1, 1, 1, 0)
-        else:
-            TurnToOrientation(270, 0.01, 0.5, 0)
-
-    elif CurrentState - 4 == targetCell:
-        if 89 < robot.get_compass_reading() < 91:
-            DistanceReturned = MoveByAmountPID(Distance_Traveled, 1, 1, 1, 0)
-        else:
-            TurnToOrientation(90, 0.01, 0.5, 0)
-    if CurrentState == targetCell:
-        if VisitedCellOrder:
-            VisitedCellOrder.pop()
-
-    if DistanceReturned != 0:
-        RobotCurrentCoordinates[0] += (DistanceReturned * math.cos(math.radians(robot.get_compass_reading())))
-        RobotCurrentCoordinates[1] += (DistanceReturned * math.sin(math.radians(robot.get_compass_reading())))
-
-        # Finds surrounding cells and checks if they are in the dict meaning not visited
-        if (VisitedCellOrder[-1] - 1) in GlobalCellCoordinates and currentWorld[VisitedCellOrder[-1]][0] != 1:
-            surroundingCells[0] = VisitedCellOrder[-1] - 1
-
-        if ((VisitedCellOrder[-1] - 4) in GlobalCellCoordinates) and currentWorld[VisitedCellOrder[-1]][1] != 1:
-            surroundingCells[1] = VisitedCellOrder[1] - 4
-        if ((VisitedCellOrder[-1] + 1) in GlobalCellCoordinates) and currentWorld[VisitedCellOrder[-1]][2] != 1:
-            surroundingCells[2] = VisitedCellOrder[-1] + 1
-        if ((VisitedCellOrder[-1] + 4) in GlobalCellCoordinates) and currentWorld[VisitedCellOrder[-1]][3] != 1:
-            surroundingCells[3] = VisitedCellOrder[-1] + 4
-
-        currentCellWithNeighbors[0] = VisitedCellOrder[-1]
-        currentCellWithNeighbors[1] = surroundingCells
-        # print('Current Cell:', currentCellWithNeighbors[0], 'Neighbors:', currentCellWithNeighbors[1])
-        # print(RobotCurrentCoordinates)
-        CurrentEncoderReading[0] = sum(robot.get_encoder_readings()) * robot.wheel_radius / 4
-        outputPrinting()
-
-
 def FindShortestPath(CurrentState, Map, Goal):
     length = {j: float('inf') for j in range(1, len(Map))}
     length[CurrentState] = 0
@@ -355,31 +300,7 @@ def FollowShortestPath(currentState, ShortestPlannedPath):
     return True
 
 
-def ReachAllCells(currentState, SurroundingCells):
-    count = 0
-    for index, cell in enumerate(SurroundingCells):
-        # print(index, cell, NeighborFollowing[0])
-        if cell != -1 and index == NeighborFollowing[0]:
-            move_to_Neighbor(currentState, cell)
-            return False
-        elif cell == -1:
-            count += 1
-
-    NeighborFollowing[0] += 1
-    if NeighborFollowing[0] > 3:
-        NeighborFollowing[0] = 0
-
-    if not GlobalCellCoordinates:
-        print('All Cells Visited')
-        robot.stop()
-        return True
-
-    if count == 4:
-        if VisitedCellOrder:
-            backtracking(currentState, VisitedCellOrder[-1])
-        return False
-
-
+# *IF YOU WANT TO CHANGE THE MAZE, CHANGE THE INDEX OF THE MAZE_FILE ARRAY. TO LOAD, CHANGE INDEX IN CURRENT_MAZE_FILE*
 # Create the robot instance.
 robot = MyRobot()
 
@@ -389,46 +310,39 @@ maze_file = ['worlds/mazes/Labs/Lab5/Lab5_SmallMaze1.xml', 'worlds/mazes/Labs/La
              'worlds/mazes/MicroMouse/Maze3.xml', 'worlds/mazes/MicroMouse/Maze4.xml']
 
 current_maze_file = maze_file[1]  # Will select the proper map to perform the task.
+robot.load_environment(current_maze_file)
 
 with open(f'MapConfigurations/{(current_maze_file.split("/")[-1]).split(".")[0]}', 'rb') as file:
+    # Loaded dictionary with the neighbors of each cell
     AllNeighbors = rick.load(file)
     # Loaded dictionary with the maze configuration
     WorldConfiguration = rick.load(file)
 
+# Grid Cell Numbering
 GlobalCellCoordinates = {}
 for i in range(1, (GRID_SIZE * GRID_SIZE) + 1):
     row = math.floor((i - 1) / GRID_SIZE)
     col = (i - 1) % GRID_SIZE
     GlobalCellCoordinates[i] = [row, col]
-robot.load_environment(current_maze_file)
 
-# Move robot to a random staring position listed in maze file
 robot.move_to_start()
+
 majorOrientations = [0, 90, 180, 270, 360]
 RobotCurrentCoordinates = [0, 0]
 currentCellWithNeighbors = []
 
 CurrentEncoderReading = [0]
-
-# [0] = Distance, [1] = Center, [2] = Edge
-ObjectRelativePosition = [-1, -1, -1]
-
 CurrentWallReadings = [0, 0, 0]
 
 InitialCoordinate = False
-
-CornerReached = False
-
 InitialOrientationNorth = False
 
 NeighborFollowing = [0]
-
 VisitedCellOrder = []
 
 ShortestPath = []
-
-
 GoalCell = random.randint(1, GRID_SIZE ** 2)
+
 while robot.experiment_supervisor.step(robot.timestep) != -1:
 
     if not InitialOrientationNorth:
