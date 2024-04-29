@@ -195,7 +195,7 @@ def MoveByAmountPID(DistanceTraveled, TargetDistance, Kps, Cmax, C_min):
         SetAngularVelocity(SaturationFunction(Control_signal, Cmax, C_min),
                            SaturationFunction(Control_signal, Cmax, C_min))
         if -0.01 <= ObjectCenterError <= 0.01:
-            robot.stop()
+            #robot.stop()
             return round(DistanceTraveled, 3)
     else:
         SetAngularVelocity(-SaturationFunction(Control_signal, Cmax, C_min),
@@ -236,25 +236,25 @@ def move_to_Neighbor(currentState, targetCell):
     if currentState + 1 == targetCell and targetCell in currentCellWithNeighbors[1]:
         # print(robot.get_compass_reading())
         if 0 <= robot.get_compass_reading() < 1 or 359 < robot.get_compass_reading() <= 360:
-            DistanceReturned = MoveByAmountPID(Distance_Traveled, 1, 1, 1, 0)
+            DistanceReturned = MoveByAmountPID(Distance_Traveled, 1, 1, 1, 0.15)
         else:
             TurnToOrientation(0, 0.01, 0.5, 0)
 
     elif currentState - 1 == targetCell and targetCell in currentCellWithNeighbors[1]:
         if 179 < robot.get_compass_reading() < 181:
-            DistanceReturned = MoveByAmountPID(Distance_Traveled, 1, 1, 1, 0)
+            DistanceReturned = MoveByAmountPID(Distance_Traveled, 1, 1, 1, 0.15)
         else:
             TurnToOrientation(180, 0.01, 0.5, 0)
 
     elif currentState + GRID_SIZE == targetCell and targetCell in currentCellWithNeighbors[1]:
         if 269 < robot.get_compass_reading() < 271:
-            DistanceReturned = MoveByAmountPID(Distance_Traveled, 1, 1, 1, 0)
+            DistanceReturned = MoveByAmountPID(Distance_Traveled, 1, 1, 1, 0.15)
         else:
             TurnToOrientation(270, 0.01, 0.5, 0)
 
     elif currentState - GRID_SIZE == targetCell and targetCell in currentCellWithNeighbors[1]:
         if 89 < robot.get_compass_reading() < 91:
-            DistanceReturned = MoveByAmountPID(Distance_Traveled, 1, 1, 1, 0)
+            DistanceReturned = MoveByAmountPID(Distance_Traveled, 1, 1, 1, 0.15)
         else:
             TurnToOrientation(90, 0.01, 0.5, 0)
 
@@ -275,25 +275,25 @@ def backtracking(CurrentState, targetCell):
     if CurrentState + 1 == targetCell:
         # print(robot.get_compass_reading())
         if 0 <= robot.get_compass_reading() < 1 or 359 < robot.get_compass_reading() <= 360:
-            DistanceReturned = MoveByAmountPID(Distance_Traveled, 1, 1, 1, 0)
+            DistanceReturned = MoveByAmountPID(Distance_Traveled, 1, 1, 1, 0.1)
         else:
             TurnToOrientation(0, 0.01, 0.5, 0)
 
     elif CurrentState - 1 == targetCell:
         if 179 < robot.get_compass_reading() < 181:
-            DistanceReturned = MoveByAmountPID(Distance_Traveled, 1, 1, 1, 0)
+            DistanceReturned = MoveByAmountPID(Distance_Traveled, 1, 1, 1, 0.1)
         else:
             TurnToOrientation(180, 0.01, 0.5, 0)
 
     elif CurrentState + GRID_SIZE == targetCell:
         if 269 < robot.get_compass_reading() < 271:
-            DistanceReturned = MoveByAmountPID(Distance_Traveled, 1, 1, 1, 0)
+            DistanceReturned = MoveByAmountPID(Distance_Traveled, 1, 1, 1, 0.1)
         else:
             TurnToOrientation(270, 0.01, 0.5, 0)
 
     elif CurrentState - GRID_SIZE == targetCell:
         if 89 < robot.get_compass_reading() < 91:
-            DistanceReturned = MoveByAmountPID(Distance_Traveled, 1, 1, 1, 0)
+            DistanceReturned = MoveByAmountPID(Distance_Traveled, 1, 1, 1, 0.1)
         else:
             TurnToOrientation(90, 0.01, 0.5, 0)
     if CurrentState == targetCell:
@@ -353,10 +353,9 @@ robot = MyRobot()
 
 # Loads the environment from the maze file
 maze_file = ['worlds/mazes/Labs/Lab5/Lab5_SmallMaze1.xml', 'worlds/mazes/Labs/Lab5/Lab5_SmallMaze2.xml',
-             'worlds/mazes/Labs/lab5/Lab5_LargeMaze.xml', 'worlds/mazes/MicroMouse/Maze2.xml',
-             'worlds/mazes/MicroMouse/Maze3.xml', 'worlds/mazes/MicroMouse/Maze4.xml']
+             'worlds/mazes/Labs/lab5/Lab5_LargeMaze.xml','worlds/mazes/Labs/Lab5/Lab5_SmallMazeTest.xml']
 
-current_maze_file = maze_file[0]  # Will select the proper map to perform the task.
+current_maze_file = maze_file[3]  # Will select the proper map to perform the task.
 
 GlobalCellCoordinates = {}
 AllNeighbors = {}

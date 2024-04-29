@@ -282,10 +282,9 @@ robot = MyRobot()
 
 # Loads the environment from the maze file
 maze_file = ['worlds/mazes/Labs/Lab5/Lab5_SmallMaze1.xml', 'worlds/mazes/Labs/Lab5/Lab5_SmallMaze2.xml',
-             'worlds/mazes/Labs/lab5/Lab5_LargeMaze.xml', 'worlds/mazes/MicroMouse/Maze2.xml',
-             'worlds/mazes/MicroMouse/Maze3.xml', 'worlds/mazes/MicroMouse/Maze4.xml']
+             'worlds/mazes/Labs/lab5/Lab5_LargeMaze.xml', 'worlds/mazes/Labs/Lab5/Lab5_SmallMazeTest.xml']
 
-current_maze_file = maze_file[1]  # Will select the proper map to perform the task.
+current_maze_file = maze_file[3]  # Will select the proper map to perform the task.
 robot.load_environment(current_maze_file)
 
 with open(f'MapConfigurations/{(current_maze_file.split("/")[-1]).split(".")[0]}', 'rb') as file:
